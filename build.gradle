@@ -1,0 +1,14 @@
+
+subprojects {
+    group = "dev.cerios.demo"
+    version = "1.0.0"
+
+    repositories {
+        mavenCentral()
+    }
+
+
+    tasks.withType(Test).configureEach {
+        useJUnitPlatform()
+    }
+}

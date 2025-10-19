@@ -1,0 +1,32 @@
+
+plugins {
+    id "java"
+    id "org.springframework.boot" version libs.versions.springboot
+    id "io.spring.dependency-management" version "1.1.7"
+}
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+dependencies {
+    compileOnly libs.lombok
+    annotationProcessor libs.lombok
+
+    implementation libs.mapstruct
+    annotationProcessor libs.mapstruct.processor
+
+    implementation project(":engine")
+    implementation libs.springboot.websocket
+    implementation libs.springboot.validation
+    implementation libs.mapstruct
+
+    testImplementation libs.springboot.test
+    testCompileOnly libs.lombok
+    testAnnotationProcessor libs.lombok
+
+    // MapStruct
+    testImplementation libs.mapstruct
+    testAnnotationProcessor libs.mapstruct.processor
+}
