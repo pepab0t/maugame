@@ -1,4 +1,4 @@
-maugame.engine/
-maugame.websocket/
 .idea/
+.mvn/
 
+**/target/

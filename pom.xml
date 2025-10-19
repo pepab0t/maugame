@@ -11,8 +11,8 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>maugame.engine</module>
-        <module>maugame.websocket</module>
+        <module>engine</module>
+        <module>server</module>
     </modules>
 
     <properties>
