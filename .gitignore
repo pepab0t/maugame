@@ -1,4 +1,6 @@
 .idea/
 .mvn/
-
 **/target/
+
+.gradle/
+**/build/
