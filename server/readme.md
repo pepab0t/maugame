@@ -12,9 +12,9 @@ and possible query parameters:
 - `user: string`: player username to be registered in the game
 - `player (optional): string`: game assigned playerId, if known, server is able to reconnect player to the original game
 - `lobby (optional): string`: lobby name to connect to
-    - `new: boolean`: whether to create new lobby, if `false` connect to the existing lobby, defaults to `false`
-    - `private: boolean`: whether the newly created lobby is private (meaning players need to know its name to connect)
-      or public, defaults to `false`
+- `new: boolean`: whether to create new lobby, if `false` connect to the existing lobby, defaults to `false`
+- `private: boolean`: whether the newly created lobby is private (meaning players need to know its name to connect)
+  or public, defaults to `false`
 
 ## websocket requests
 

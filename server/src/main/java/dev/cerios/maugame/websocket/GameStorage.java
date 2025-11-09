@@ -136,7 +136,8 @@ public class GameStorage {
             var namedGame = publicGames.remove(gameId);
             if (namedGame == null)
                 namedGame = privateGames.remove(gameId);
-            gameRefs.remove(namedGame.name());
+            if (namedGame != null)
+                gameRefs.remove(namedGame.name());
         } finally {
             lock.unlock();
         }
