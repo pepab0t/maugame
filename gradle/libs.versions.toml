@@ -10,7 +10,7 @@ junit-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "jun
 assertj = { module = "org.assertj:assertj-core", version = "3.27.3" }
 mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockito" }
 mockito-junit = { module = "org.mockito:mockito-junit-jupiter", version.ref = "mockito" }
-lombok = { module = "org.projectlombok:lombok", version = "1.18.34" }
+lombok = { module = "org.projectlombok:lombok", version = "1.18.42" }
 ulid = { module = "com.github.f4b6a3:ulid-creator", version = "5.2.3" }
 slf4j = { module = "org.slf4j:slf4j-api", version = "2.0.17" }
 collections4 = { module = "org.apache.commons:commons-collections4", version = "4.5.0" }

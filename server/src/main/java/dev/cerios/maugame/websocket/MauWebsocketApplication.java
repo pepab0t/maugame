@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Bean;
 @SpringBootApplication
 @Slf4j
 public class MauWebsocketApplication {
-    public static void main(String[] args) {
+    void main(String[] args) {
         SpringApplication.run(MauWebsocketApplication.class, args);
     }
 
