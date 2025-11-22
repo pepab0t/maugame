@@ -14,12 +14,14 @@ import dev.cerios.maugame.mauengine.player.Player;
 import dev.cerios.maugame.mauengine.player.PlayerContext;
 import dev.cerios.maugame.mauengine.player.PlayerRunningState;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Predicate;
 
+@Slf4j
 class GameCore {
     private final CardManager cardManager;
     private final PlayerContext playerContext;
@@ -138,7 +140,6 @@ class GameCore {
 
 
     private void start(UUID gameId) {
-        System.out.println("start called");
         var players = playerContext.getPlayers();
 
         for (Player player : players.getPlayers()) {
@@ -160,6 +161,8 @@ class GameCore {
             publisher.publishActionExcludingPlayer(new HiddenDrawAction(player, player.getHand().size()), player.getPlayerId());
             publisher.publishAction(player, new DrawAction(player.getHand()));
         }
+
+        log.info("Game {} started", id);
     }
 
     public Card getPileCard() {

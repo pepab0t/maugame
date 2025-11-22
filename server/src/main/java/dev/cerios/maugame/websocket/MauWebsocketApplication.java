@@ -15,6 +15,6 @@ public class MauWebsocketApplication {
 
     @Bean
     public CommandLineRunner commandLineRunner(MauSettings settings) {
-        return (args) -> log.info("started with settings: {}", settings);
+        return _ -> log.info("started with settings: {}", settings);
     }
 }

@@ -65,7 +65,7 @@ public class GameHandler extends TextWebSocketHandler {
         try {
             gameService.disconnectPlayer(session.getId());
         } catch (Exception e) {
-            log.trace("error disconnect player", e);
+            log.info("error disconnect player", e);
         }
     }
 

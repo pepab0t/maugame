@@ -130,7 +130,6 @@ public class PlayerLobbyState implements PlayerReadyStorage {
     }
 
     private void triggerStart() {
-        System.out.println(startListeners);
         for (var listener : startListeners) {
             listener.accept(gameId);
         }

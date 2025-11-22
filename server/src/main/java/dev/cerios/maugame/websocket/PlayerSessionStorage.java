@@ -1,5 +1,6 @@
 package dev.cerios.maugame.websocket;
 
+import dev.cerios.maugame.mauengine.exception.NotSupportedOperation;
 import dev.cerios.maugame.mauengine.game.Game;
 import dev.cerios.maugame.mauengine.game.GamePlayer;
 import dev.cerios.maugame.websocket.exception.MauTimeoutException;
@@ -72,6 +73,7 @@ public class PlayerSessionStorage {
                     }
                 });
         playerLocks.remove(playerId);
+        log.info("Player {} disconnected.", player);
         return player;
     }
 
@@ -115,11 +117,15 @@ public class PlayerSessionStorage {
      * @return <i>empty</i> if game remains empty, <i>Game</i> if it has more players left
      */
     private Optional<Game> removePlayerFromGame(String playerId) {
-        return Optional.ofNullable(playerToGame.remove(playerId))
-                .map(g -> {
-                    g.removePlayer(playerId);
-                    return g;
-                });
+        return Optional.ofNullable(playerToGame.computeIfPresent(playerId, (id, game) -> {
+            try {
+                game.removePlayer(id);
+                log.info("Player {} removed from the game {}", id, game);
+                return null;
+            } catch (NotSupportedOperation _) {
+                return game;
+            }
+        }));
     }
 
     public void removePlayerById(String playerId) {

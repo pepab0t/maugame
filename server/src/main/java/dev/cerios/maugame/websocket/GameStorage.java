@@ -124,7 +124,7 @@ public class GameStorage {
     }
 
     private Game createAndRegisterPublicGame() {
-        var g = gameFactory.createGame(2, mauSettings.getMaxPlayers(), 60_000);
+        var g = gameFactory.createGame(2, mauSettings.getMaxPlayers(), 600_000);
         publicGames.putLast(g.getId(), new NamedGame(g));
         g.listenStart(this::remove);
         return g;
