@@ -15,6 +15,7 @@ import java.util.LinkedHashMap;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
 
 @Component
 @RequiredArgsConstructor
@@ -31,23 +32,17 @@ public class GameStorage {
     private final HashMap<String, UUID> gameRefs = new HashMap<>();
     private final MauSettings mauSettings;
 
-    public GamePlayer registerToRandom(String username) throws GameException {
-        Game game;
+    public GamePlayer registerToRandom(String username) {
         log.debug("registering {}", username);
         try {
             lock.lock();
-            game = getOrCreateRandomGame();
-            log.debug("found game {} for user {}", game.getId(), username);
-            try {
+            return getOrCreateRandomGame(game -> {
+                log.debug("found game {} for user {}", game.getId(), username);
                 var player = game.registerPlayer(username, distributor::distribute);
                 storage.registerGame(player.getPlayerId(), game);
                 log.info("{} registered to random game {}", player, game.getId());
                 return player;
-            } catch (GameException e) {
-                log.error("{} : not registered", username, e);
-                publicGames.putLast(game.getId(), new NamedGame(game));
-                throw e;
-            }
+            });
         } finally {
             lock.unlock();
         }
@@ -85,12 +80,8 @@ public class GameStorage {
                 throw new LobbyAlreadyExistsException(gameName);
             }
             gameRefs.put(gameName, newGame.getId());
-
-            if (isPrivate) {
-                privateGames.put(newGame.getId(), new NamedGame(gameName, newGame));
-            } else {
-                publicGames.put(newGame.getId(), new NamedGame(gameName, newGame));
-            }
+            (isPrivate ? privateGames : publicGames)
+                    .put(newGame.getId(), new NamedGame(gameName, newGame));
         } finally {
             lock.unlock();
         }
@@ -107,20 +98,19 @@ public class GameStorage {
         }
     }
 
-    private Game getOrCreateRandomGame() {
-        var first = publicGames.firstEntry();
-        if (first == null)
-            return createAndRegisterPublicGame();
+    private <T> T getOrCreateRandomGame(GameHandlerFunction<T> gameHandler) {
+        var iterator = publicGames.values().iterator();
 
-        var game = first.getValue().game();
-        return switch (game.getFreeCapacity()) {
-            case 0 -> {
-                publicGames.pollFirstEntry();
-                yield createAndRegisterPublicGame();
+        while (true) {
+            Game game = iterator.hasNext() ? iterator.next().game() : createAndRegisterPublicGame();
+            try {
+                T out = gameHandler.handle(game);
+                if (game.getFreeCapacity() == 0) publicGames.pollFirstEntry();
+                return out;
+            } catch (GameException e) {
+                log.debug("error handle game {}: ", game.getId(), e);
             }
-            case 1 -> Objects.requireNonNull(publicGames.remove(game.getId())).game();
-            default -> game;
-        };
+        }
     }
 
     private Game createAndRegisterPublicGame() {
@@ -158,5 +148,9 @@ public class GameStorage {
         private NamedGame(Game game) {
             this(null, game);
         }
+    }
+
+    interface GameHandlerFunction<T> {
+        T handle(Game game) throws GameException;
     }
 }

@@ -22,7 +22,7 @@ public class GameFactory {
         var globalLock = new ReentrantReadWriteLock(true);
         var factory = new PlayerStateFactory(gameId, minPlayers, maxPlayers, random, globalLock, turnTimeoutMs);
         var playerContext = new PlayerContext(factory);
-        var core = new GameCore(CardManager.create(random, new CardComparer()), playerContext);
+        var core = new GameCore(CardManager.create(random, new CardComparer()), playerContext, gameId);
         var game = new Game(gameId, core, playerContext, globalLock);
         playerContext.setLobbyState();
         return game;

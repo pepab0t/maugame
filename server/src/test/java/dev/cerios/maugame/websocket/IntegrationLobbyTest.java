@@ -5,6 +5,7 @@ import dev.cerios.maugame.mauengine.game.GameFactory;
 import dev.cerios.maugame.websocket.clientutils.TestClient;
 import org.json.JSONException;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.params.ParameterizedTest;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,13 +21,13 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static dev.cerios.maugame.websocket.clientutils.JsonFactory.createReadyRequest;
 import static java.lang.System.out;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
@@ -277,24 +278,38 @@ class IntegrationLobbyTest {
     }
 
     @Test
-    void whenPlayerAmountExceedsGameCapacity_thenShouldRegisterToAnotherGame() throws IOException {
+    void whenPlayerAmountExceedsGameCapacity_thenShouldRegisterToAnotherGame() throws IOException, ExecutionException, InterruptedException {
         // given
         mauSettings.setMaxPlayers(2);
-        Predicate<String> messageMatcher = message -> message.matches(".*:\\s*\"START_GAME.*");
+        Predicate<String> messageMatcher = m -> m.contains("START_GAME") || m.contains("PLAYERS");
         var client1 = new TestClient(createConnectionUri("user1_"), messageMatcher, TIMEOUT_MS);
         var client2 = new TestClient(createConnectionUri("user2"), messageMatcher, TIMEOUT_MS);
         var client3 = new TestClient(createConnectionUri("user3"), messageMatcher, TIMEOUT_MS);
         var client4 = new TestClient(createConnectionUri("user4"), messageMatcher, TIMEOUT_MS);
 
+        var sessionFuture1 = client1.handshake();
+        var sessionFuture2 = client2.handshake();
+        var sessionFuture3 = client3.handshake();
+        var sessionFuture4 = client4.handshake();
+
+        CompletableFuture.allOf(sessionFuture1, sessionFuture2, sessionFuture3, sessionFuture4).join();
+
         // when
-        try (var s1 = client1.handshake().join();
-             var s2 = client2.handshake().join();
-             var s3 = client3.handshake().join();
-             var s4 = client4.handshake().join()) {
+        try (var s1 = sessionFuture1.get();
+             var s2 = sessionFuture2.get();
+             var s3 = sessionFuture3.get();
+             var s4 = sessionFuture4.get()) {
+
+            client1.get(); // get PLAYERS message
+            client2.get();
+            client3.get();
+            client4.get();
+
             s1.sendMessage(new TextMessage(createReadyRequest()));
             s2.sendMessage(new TextMessage(createReadyRequest()));
             s3.sendMessage(new TextMessage(createReadyRequest()));
             s4.sendMessage(new TextMessage(createReadyRequest()));
+
             var m1 = client1.get();
             var m2 = client2.get();
             var m3 = client3.get();
@@ -629,8 +644,8 @@ class IntegrationLobbyTest {
         );
 
         // when
-        try (var ignore2 = client2.handshakeWithCatch().join();
-             var ignore3 = client3.handshakeWithCatch().join()) {
+        try (var _ = client2.handshakeWithCatch().join();
+             var _ = client3.handshakeWithCatch().join()) {
         }
 
         // then
@@ -652,6 +667,25 @@ class IntegrationLobbyTest {
                         }
                         """, message3, JSONCompareMode.LENIENT
         );
+    }
+
+    @Test
+    void when2PlayersWithSameUsernameRegistersToRandom_theyShouldGetDifferentGameId() throws ExecutionException, InterruptedException, IOException {
+        Predicate<String> messageFilter = m -> m.contains("REGISTER_PLAYER");
+        var client1 = new TestClient(createConnectionUri("testUser"), messageFilter, TIMEOUT_MS);
+        var client2 = new TestClient(createConnectionUri("testUser"), messageFilter, TIMEOUT_MS);
+
+        var sessionFuture1 = client1.handshake();
+        var sessionFuture2 = client2.handshake();
+        CompletableFuture.allOf(sessionFuture1, sessionFuture2).join();
+
+        try (var _ = sessionFuture1.get();
+             var _ = sessionFuture2.get()) {
+            var game1 = JsonPath.<String>read(client1.get(), "$.action.gameId");
+            var game2 = JsonPath.<String>read(client2.get(), "$.action.gameId");
+
+            assertThat(game1).isNotEqualTo(game2);
+        }
     }
 
     private void assertRegisterAction(String jsonMessage, String expectedUsername) {

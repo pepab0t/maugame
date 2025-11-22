@@ -28,15 +28,16 @@ class GameCore {
 
     @Getter
     private volatile GameEffect gameEffect = null;
-    @Getter
-    private final UUID id = UUID.randomUUID();
+    private final UUID id;
 
-    public GameCore(
+    GameCore(
             CardManager cardManager,
-            PlayerContext playerContext
+            PlayerContext playerContext,
+            UUID id
     ) {
         this.cardManager = cardManager;
         this.playerContext = playerContext;
+        this.id = id;
 
         this.playerContext.listenPlayerTimeout(this::restorePlayerCards);
         this.playerContext.listenStartGame(this::start);

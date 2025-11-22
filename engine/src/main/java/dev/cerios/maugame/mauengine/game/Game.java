@@ -8,6 +8,7 @@ import dev.cerios.maugame.mauengine.exception.NotSupportedOperation;
 import dev.cerios.maugame.mauengine.player.PlayerContext;
 import dev.cerios.maugame.mauengine.player.PlayerLobbyState;
 import dev.cerios.maugame.mauengine.player.PlayerReadyStorage;
+import lombok.ToString;
 
 import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -15,7 +16,9 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 
+@ToString(onlyExplicitlyIncluded = true)
 public class Game {
+    @ToString.Include
     private final UUID gameId;
     private final GameCore core;
     private final PlayerContext playerContext;
