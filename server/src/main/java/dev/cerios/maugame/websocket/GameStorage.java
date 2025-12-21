@@ -12,10 +12,10 @@ import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Function;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 @Component
 @RequiredArgsConstructor
@@ -25,7 +25,7 @@ public class GameStorage {
     private final GameFactory gameFactory;
     private final MessageDistributor distributor;
     private final PlayerSessionStorage storage;
-    private final ReentrantLock lock = new ReentrantLock();
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
     private final LinkedHashMap<UUID, NamedGame> publicGames = new LinkedHashMap<>();
     private final HashMap<UUID, NamedGame> privateGames = new HashMap<>();
@@ -33,79 +33,71 @@ public class GameStorage {
     private final MauSettings mauSettings;
 
     public GamePlayer registerToRandom(String username) {
-        log.debug("registering {}", username);
-        try {
-            lock.lock();
-            return getOrCreateRandomGame(game -> {
+        return runLocked(
+            lock.writeLock(), () -> resolveRandomGame(game -> {
                 log.debug("found game {} for user {}", game.getId(), username);
                 var player = game.registerPlayer(username, distributor::distribute);
                 storage.registerGame(player.getPlayerId(), game);
                 log.info("{} registered to random game {}", player, game.getId());
                 return player;
-            });
-        } finally {
-            lock.unlock();
-        }
+            })
+        );
     }
 
     public GamePlayer registerToNamed(String username, String gameName) throws NotFoundException, GameException {
-        NamedGame namedGame;
-        try {
-            lock.lock();
-            var gameId = gameRefs.get(gameName);
-            if (gameId == null) {
-                throw new NotFoundException("Game `" + gameName + "` not found");
+        var ng = runLocked(
+            lock.readLock(), () -> {
+                var gameId = gameRefs.get(gameName);
+                if (gameId == null) {
+                    throw new NotFoundException("Game `" + gameName + "` not found");
+                }
+                var namedGame = publicGames.get(gameId);
+                if (namedGame == null) {
+                    namedGame = privateGames.get(gameId);
+                }
+                return namedGame;
             }
-            namedGame = publicGames.get(gameId);
-            if (namedGame == null) {
-                namedGame = privateGames.get(gameId);
-            }
-        } finally {
-            lock.unlock();
-        }
+        );
 
-        var player = namedGame.game().registerPlayer(username, distributor::distribute);
-        storage.registerGame(player.getPlayerId(), namedGame.game());
-
+        var player = ng.game().registerPlayer(username, distributor::distribute);
+        storage.registerGame(player.getPlayerId(), ng.game());
         return player;
     }
 
     public GamePlayer registerToNew(String username, String gameName, boolean isPrivate) throws LobbyAlreadyExistsException {
-        Game newGame;
-        try {
-            lock.lock();
-            newGame = gameFactory.createGame();
+        var game = runLocked(
+            lock.writeLock(), () -> {
+                var newGame = gameFactory.createGame();
 
-            if (gameRefs.containsKey(gameName)) {
-                throw new LobbyAlreadyExistsException(gameName);
-            }
-            gameRefs.put(gameName, newGame.getId());
-            (isPrivate ? privateGames : publicGames)
+                if (gameRefs.containsKey(gameName)) {
+                    throw new LobbyAlreadyExistsException(gameName);
+                }
+                gameRefs.put(gameName, newGame.getId());
+                (isPrivate ? privateGames : publicGames)
                     .put(newGame.getId(), new NamedGame(gameName, newGame));
-        } finally {
-            lock.unlock();
-        }
+                return newGame;
+            }
+        );
 
-        newGame.listenStart(this::remove);
+        game.listenStart(this::remove);
 
-        GamePlayer player;
         try {
-            player = newGame.registerPlayer(username, distributor::distribute);
-            storage.registerGame(player.getPlayerId(), newGame);
+            var player = game.registerPlayer(username, distributor::distribute);
+            storage.registerGame(player.getPlayerId(), game);
             return player;
         } catch (GameException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
     }
 
-    private <T> T getOrCreateRandomGame(GameHandlerFunction<T> gameHandler) {
+    private <T> T resolveRandomGame(GameHandlerFunction<T> gameHandler) {
         var iterator = publicGames.values().iterator();
 
         while (true) {
-            Game game = iterator.hasNext() ? iterator.next().game() : createAndRegisterPublicGame();
+            Game game = iterator.hasNext() ? iterator.next().game() : createAndStorePublicGame();
             try {
                 T out = gameHandler.handle(game);
-                if (game.getFreeCapacity() == 0) publicGames.pollFirstEntry();
+                if (game.getFreeCapacity() == 0) iterator.remove();
                 return out;
             } catch (GameException e) {
                 log.debug("error handle game {}: ", game.getId(), e);
@@ -113,7 +105,7 @@ public class GameStorage {
         }
     }
 
-    private Game createAndRegisterPublicGame() {
+    private Game createAndStorePublicGame() {
         var g = gameFactory.createGame(2, mauSettings.getMaxPlayers(), 600_000);
         publicGames.putLast(g.getId(), new NamedGame(g));
         g.listenStart(this::remove);
@@ -121,26 +113,42 @@ public class GameStorage {
     }
 
     public void remove(UUID gameId) {
-        try {
-            lock.lock();
-            var namedGame = publicGames.remove(gameId);
-            if (namedGame == null)
-                namedGame = privateGames.remove(gameId);
-            if (namedGame != null)
-                gameRefs.remove(namedGame.name());
-        } finally {
-            lock.unlock();
-        }
+        runLocked(
+            lock.writeLock(), () -> {
+                var namedGame = publicGames.remove(gameId);
+                if (namedGame == null)
+                    namedGame = privateGames.remove(gameId);
+                if (namedGame != null)
+                    gameRefs.remove(namedGame.name());
+            }
+        );
     }
 
     public void clear() {
+        runLocked(
+            lock.writeLock(), () -> {
+                publicGames.clear();
+                privateGames.clear();
+                gameRefs.clear();
+            }
+        );
+    }
+
+    private void runLocked(Lock internalLock, Runnable runnable) {
         try {
-            lock.lock();
-            publicGames.clear();
-            privateGames.clear();
-            gameRefs.clear();
+            internalLock.lock();
+            runnable.run();
         } finally {
-            lock.unlock();
+            internalLock.unlock();
+        }
+    }
+
+    private <R, E extends Throwable> R runLocked(Lock internalLock, CheckedTask<R, E> task) throws E {
+        try {
+            internalLock.lock();
+            return task.run();
+        } finally {
+            internalLock.unlock();
         }
     }
 
@@ -152,5 +160,9 @@ public class GameStorage {
 
     interface GameHandlerFunction<T> {
         T handle(Game game) throws GameException;
+    }
+
+    interface CheckedTask<R, E extends Throwable> {
+        R run() throws E;
     }
 }

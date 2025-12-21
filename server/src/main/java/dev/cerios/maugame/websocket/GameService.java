@@ -22,24 +22,20 @@ public class GameService {
     private final GameStorage gameStorage;
 
     public void registerPlayerToNewCustomLobby(
-            String username,
-            WebSocketSession session,
-            String gameName,
-            boolean isPrivate
+        String username,
+        WebSocketSession session,
+        String gameName,
+        boolean isPrivate
     ) throws LobbyAlreadyExistsException {
         var player = gameStorage.registerToNew(username, gameName, isPrivate);
         storage.registerSession(player, session);
         logPlayerAssignment(player, session);
     }
 
-    public void registerPlayerToExistingCustomLobby(String username, WebSocketSession session, String lobbyName) throws NotFoundException {
-        try {
-            var player = gameStorage.registerToNamed(username, lobbyName);
-            storage.registerSession(player, session);
-            logPlayerAssignment(player, session);
-        } catch (GameException e) {
-            throw new RuntimeException(e);
-        }
+    public void registerPlayerToExistingCustomLobby(String username, WebSocketSession session, String lobbyName) throws NotFoundException, GameException {
+        var player = gameStorage.registerToNamed(username, lobbyName);
+        storage.registerSession(player, session);
+        logPlayerAssignment(player, session);
     }
 
     public void registerPlayer(String username, WebSocketSession session) throws GameException {
