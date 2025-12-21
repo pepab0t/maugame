@@ -65,25 +65,24 @@ public class GameStorage {
     }
 
     public GamePlayer registerToNew(String username, String gameName, boolean isPrivate) throws LobbyAlreadyExistsException {
-        var game = runLocked(
+        var newGame = gameFactory.createGame();
+        runLocked(
             lock.writeLock(), () -> {
-                var newGame = gameFactory.createGame();
-
                 if (gameRefs.containsKey(gameName)) {
                     throw new LobbyAlreadyExistsException(gameName);
                 }
                 gameRefs.put(gameName, newGame.getId());
                 (isPrivate ? privateGames : publicGames)
                     .put(newGame.getId(), new NamedGame(gameName, newGame));
-                return newGame;
+                return null;
             }
         );
 
-        game.listenStart(this::remove);
+        newGame.listenStart(this::remove);
 
         try {
-            var player = game.registerPlayer(username, distributor::distribute);
-            storage.registerGame(player.getPlayerId(), game);
+            var player = newGame.registerPlayer(username, distributor::distribute);
+            storage.registerGame(player.getPlayerId(), newGame);
             return player;
         } catch (GameException e) {
             throw new IllegalStateException(e);
