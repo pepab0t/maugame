@@ -31,11 +31,11 @@ public class PlayerLobbyState implements PlayerReadyStorage {
     }
 
     PlayerLobbyState(
-            int minPlayers,
-            int maxPlayers,
-            UUID gameId,
-            Consumer<Collection<Player>> stateSwitcher,
-            ActionPublisherBuilder builder
+        int minPlayers,
+        int maxPlayers,
+        UUID gameId,
+        Consumer<Collection<Player>> stateSwitcher,
+        ActionPublisherBuilder builder
     ) {
         this.minPlayers = minPlayers;
         this.maxPlayers = maxPlayers;
@@ -93,7 +93,7 @@ public class PlayerLobbyState implements PlayerReadyStorage {
 
     @Override
     public List<Player> getPlayers() {
-        return players.valueList();
+        return new ArrayList<>(players.valueList());
     }
 
     @Override
@@ -102,7 +102,7 @@ public class PlayerLobbyState implements PlayerReadyStorage {
         if (ready == null)
             throw new GameException("Player `" + playerId + "` not found");
 
-        if (!ready.set(true)){
+        if (!ready.set(true)) {
             log.trace("game {}: player `{}` ready status true not changed", gameId, playerId);
             return;
         }

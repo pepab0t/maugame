@@ -4,8 +4,10 @@ import com.jayway.jsonpath.JsonPath;
 import dev.cerios.maugame.mauengine.game.GameFactory;
 import dev.cerios.maugame.websocket.clientutils.TestClient;
 import org.json.JSONException;
-import org.junit.jupiter.api.*;
-import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +29,8 @@ import java.util.stream.Collectors;
 
 import static dev.cerios.maugame.websocket.clientutils.JsonFactory.createReadyRequest;
 import static java.lang.System.out;
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
@@ -70,12 +73,18 @@ class IntegrationLobbyTest {
         List<String> messages2;
 
         // when
-        try (var ignore1 = client.handshake().join(); var ignore2 = client2.handshake().join()) {
-            messages1 = client.get(3);
+        WebSocketSession session1 = null;
+        WebSocketSession session2 = null;
+        try {
+            session1 = client.handshake().join();
+            messages1 = client.get(2);
+            session2 = client2.handshake().join();
+            messages1.addAll(client.get(1));
             messages2 = client2.get(2);
+        } finally {
+            if (session1 != null) session1.close();
+            if (session2 != null) session2.close();
         }
-
-        messages1.forEach(out::println);
 
         // then
         assertRegisterAction(messages1.getFirst(), "user1");
@@ -107,9 +116,9 @@ class IntegrationLobbyTest {
     void when2PlayersInLobbyAndFirstDisconnects_thenRemainingGetsUnready() throws IOException, InterruptedException {
         // given
         var client2 = new TestClient(
-                createConnectionUri("user2"),
-                message -> message.contains("REMOVE") || message.contains("READY"),
-                TIMEOUT_MS
+            createConnectionUri("user2"),
+            message -> message.contains("REMOVE") || message.contains("READY"),
+            TIMEOUT_MS
         );
 
         // when
@@ -167,14 +176,14 @@ class IntegrationLobbyTest {
         // given
         Predicate<String> readyMatcher = message -> message.matches(".*:\\s*\"(UN)?READY.*");
         var client2 = new TestClient(
-                createConnectionUri("user2"),
-                readyMatcher,
-                TIMEOUT_MS
+            createConnectionUri("user2"),
+            readyMatcher,
+            TIMEOUT_MS
         );
         var client3 = new TestClient(
-                createConnectionUri("user3"),
-                readyMatcher,
-                TIMEOUT_MS
+            createConnectionUri("user3"),
+            readyMatcher,
+            TIMEOUT_MS
         );
 
         try (var s1 = client.handshake().join();
@@ -207,14 +216,14 @@ class IntegrationLobbyTest {
         // given
         Predicate<String> readyMatcher = message -> message.matches(".*:\\s*\"READY.*");
         var client1 = new TestClient(
-                createConnectionUri("user1"),
-                readyMatcher,
-                TIMEOUT_MS
+            createConnectionUri("user1"),
+            readyMatcher,
+            TIMEOUT_MS
         );
         var client2 = new TestClient(
-                createConnectionUri("user2"),
-                readyMatcher,
-                TIMEOUT_MS
+            createConnectionUri("user2"),
+            readyMatcher,
+            TIMEOUT_MS
         );
 
         try (var s1 = client1.handshake().join(); var s2 = client2.handshake().join()) {
@@ -240,14 +249,14 @@ class IntegrationLobbyTest {
         // given
         Predicate<String> readyMatcher = message -> message.matches(".*:\\s*\"(UN)?READY.*");
         var client3 = new TestClient(
-                createConnectionUri("user3"),
-                readyMatcher,
-                TIMEOUT_MS
+            createConnectionUri("user3"),
+            readyMatcher,
+            TIMEOUT_MS
         );
         var client2 = new TestClient(
-                createConnectionUri("user2"),
-                readyMatcher,
-                TIMEOUT_MS
+            createConnectionUri("user2"),
+            readyMatcher,
+            TIMEOUT_MS
         );
 
         WebSocketSession s1 = null;
@@ -368,7 +377,7 @@ class IntegrationLobbyTest {
         try (var session = client1.handshake().join()) {
             session.sendMessage(new TextMessage(createReadyRequest()));
             assertThatThrownBy(client1::get)
-                    .isInstanceOf(RuntimeException.class);
+                .isInstanceOf(RuntimeException.class);
         }
     }
 
@@ -383,23 +392,23 @@ class IntegrationLobbyTest {
 
         // then
         JSONAssert.assertEquals(
-                """
-                        {
-                          "messageType": "ERROR",
-                          "exceptionBody": {
-                            "name": "InvalidHandshakeException"
-                          }
-                        }
-                        """, message, JSONCompareMode.LENIENT
+            """
+                {
+                  "messageType": "ERROR",
+                  "exceptionBody": {
+                    "name": "InvalidHandshakeException"
+                  }
+                }
+                """, message, JSONCompareMode.LENIENT
         );
     }
 
     @Test
     void whenRegisterUserToRandomAndCustomPrivate_thenTheyShouldObtainDifferentGameId() throws IOException {
         var client2 = new TestClient(
-                createConnectionUri("user2", "custom_lobby", true, true),
-                m -> m.contains("REGISTER_PLAYER"),
-                TIMEOUT_MS
+            createConnectionUri("user2", "custom_lobby", true, true),
+            m -> m.contains("REGISTER_PLAYER"),
+            TIMEOUT_MS
         );
 
         try (var ignore = client.handshake().join();
@@ -419,9 +428,9 @@ class IntegrationLobbyTest {
     void whenRegisterUserToRandomAndCustomPublic_thenTheyShouldObtainDifferentGameId() throws IOException {
         // given
         var client2 = new TestClient(
-                createConnectionUri("user2", "custom_lobby", true, true),
-                m -> m.contains("REGISTER_PLAYER"),
-                TIMEOUT_MS
+            createConnectionUri("user2", "custom_lobby", true, true),
+            m -> m.contains("REGISTER_PLAYER"),
+            TIMEOUT_MS
         );
 
         WebSocketSession session = null;
@@ -458,14 +467,14 @@ class IntegrationLobbyTest {
         try (var ignore = client2.handshake().join()) {
             // then
             JSONAssert.assertEquals(
-                    """
-                            {
-                              "messageType": "ERROR",
-                              "exceptionBody": {
-                                "name": "NotFoundException"
-                              }
-                            }
-                            """, client2.get(), JSONCompareMode.LENIENT
+                """
+                    {
+                      "messageType": "ERROR",
+                      "exceptionBody": {
+                        "name": "NotFoundException"
+                      }
+                    }
+                    """, client2.get(), JSONCompareMode.LENIENT
             );
         }
     }
@@ -474,9 +483,9 @@ class IntegrationLobbyTest {
     void whenRegisterToCustomPublicAndRandom_thenUsersShouldGetSameGameId() throws IOException {
         // given
         var client2 = new TestClient(
-                createConnectionUri("user2", "custom_lobby", true, false),
-                m -> m.contains("REGISTER_PLAYER"),
-                TIMEOUT_MS
+            createConnectionUri("user2", "custom_lobby", true, false),
+            m -> m.contains("REGISTER_PLAYER"),
+            TIMEOUT_MS
         );
 
         WebSocketSession session = null;
@@ -507,14 +516,14 @@ class IntegrationLobbyTest {
     void whenBothPlayerRegisterToCustomLobby_thenShouldGetSameGameId() throws IOException {
         // given
         var client2 = new TestClient(
-                createConnectionUri("user2", "custom_lobby", true, false),
-                m -> m.contains("REGISTER_PLAYER"),
-                TIMEOUT_MS
+            createConnectionUri("user2", "custom_lobby", true, false),
+            m -> m.contains("REGISTER_PLAYER"),
+            TIMEOUT_MS
         );
         var client3 = new TestClient(
-                createConnectionUri("user3", "custom_lobby", false, false),
-                m -> m.contains("REGISTER_PLAYER"),
-                TIMEOUT_MS
+            createConnectionUri("user3", "custom_lobby", false, false),
+            m -> m.contains("REGISTER_PLAYER"),
+            TIMEOUT_MS
         );
 
         WebSocketSession session2 = null;
@@ -545,14 +554,14 @@ class IntegrationLobbyTest {
     void whenOneUserCreatesPublicLobby_otherConnectsToIt_anotherConnectsToRandom_thenAllShouldGetSameGameId() throws IOException {
         // given
         var client2 = new TestClient(
-                createConnectionUri("user2", "custom_lobby", true, false),
-                m -> m.contains("REGISTER_PLAYER"),
-                TIMEOUT_MS
+            createConnectionUri("user2", "custom_lobby", true, false),
+            m -> m.contains("REGISTER_PLAYER"),
+            TIMEOUT_MS
         );
         var client3 = new TestClient(
-                createConnectionUri("user3", "custom_lobby", false, false),
-                m -> m.contains("REGISTER_PLAYER"),
-                TIMEOUT_MS
+            createConnectionUri("user3", "custom_lobby", false, false),
+            m -> m.contains("REGISTER_PLAYER"),
+            TIMEOUT_MS
         );
 
         WebSocketSession session = null;
@@ -634,13 +643,13 @@ class IntegrationLobbyTest {
     void whenTwoUsersCreateSameNamedLobby_thenOneShouldGetError() throws IOException, JSONException {
         // given
         var client2 = new TestClient(
-                createConnectionUri("user2", "existing_lobby", true, true),
-                TIMEOUT_MS
+            createConnectionUri("user2", "existing_lobby", true, true),
+            TIMEOUT_MS
         );
 
         var client3 = new TestClient(
-                createConnectionUri("user3", "existing_lobby", true, false),
-                TIMEOUT_MS
+            createConnectionUri("user3", "existing_lobby", true, false),
+            TIMEOUT_MS
         );
 
         // when
@@ -657,15 +666,15 @@ class IntegrationLobbyTest {
 
         assertRegisterAction(message2, "user2");
         JSONAssert.assertEquals(
-                """
-                        {
-                          "messageType": "ERROR",
-                          "exceptionBody": {
-                            "name": "LobbyAlreadyExistsException",
-                            "message": "existing_lobby"
-                          }
-                        }
-                        """, message3, JSONCompareMode.LENIENT
+            """
+                {
+                  "messageType": "ERROR",
+                  "exceptionBody": {
+                    "name": "LobbyAlreadyExistsException",
+                    "message": "existing_lobby"
+                  }
+                }
+                """, message3, JSONCompareMode.LENIENT
         );
     }
 
@@ -690,16 +699,16 @@ class IntegrationLobbyTest {
 
     private void assertRegisterAction(String jsonMessage, String expectedUsername) {
         var expectedJson = """
-                {
-                    "messageType": "ACTION",
-                    "action": {
-                        "type": "REGISTER_PLAYER",
-                        "playerDto": {
-                            "username": "%s"
-                        }
+            {
+                "messageType": "ACTION",
+                "action": {
+                    "type": "REGISTER_PLAYER",
+                    "playerDto": {
+                        "username": "%s"
                     }
                 }
-                """.formatted(expectedUsername);
+            }
+            """.formatted(expectedUsername);
         try {
             JSONAssert.assertEquals(expectedJson, jsonMessage, JSONCompareMode.STRICT_ORDER);
         } catch (JSONException e) {
@@ -709,14 +718,14 @@ class IntegrationLobbyTest {
 
     private void assertPlayersAction(String jsonMessage, List<String> expectedPlayers) {
         var expectedJson = """
-                {
-                    "messageType": "ACTION",
-                    "action": {
-                        "type": "PLAYERS",
-                        "players": [%s]
-                    }
+            {
+                "messageType": "ACTION",
+                "action": {
+                    "type": "PLAYERS",
+                    "players": [%s]
                 }
-                """.formatted(expectedPlayers.stream().map(p -> "\"" + p + "\"").collect(Collectors.joining(", ")));
+            }
+            """.formatted(expectedPlayers.stream().map(p -> "\"" + p + "\"").collect(Collectors.joining(", ")));
         try {
             JSONAssert.assertEquals(expectedJson, jsonMessage, JSONCompareMode.STRICT);
         } catch (JSONException e) {
@@ -726,16 +735,16 @@ class IntegrationLobbyTest {
 
     private void assertRemovePlayerAction(String jsonMessage, String expectedUsername) {
         var expectedJson = """
-                {
-                    "messageType": "ACTION",
-                    "action": {
-                        "type": "REMOVE_PLAYER",
-                        "playerDto": {
-                            "username": "%s"
-                        }
+            {
+                "messageType": "ACTION",
+                "action": {
+                    "type": "REMOVE_PLAYER",
+                    "playerDto": {
+                        "username": "%s"
                     }
                 }
-                """.formatted(expectedUsername);
+            }
+            """.formatted(expectedUsername);
         try {
             JSONAssert.assertEquals(expectedJson, jsonMessage, JSONCompareMode.STRICT_ORDER);
         } catch (JSONException e) {
@@ -746,15 +755,15 @@ class IntegrationLobbyTest {
     private void assertReadyMessage(String jsonMessage, String expectedUsername) {
         try {
             JSONAssert.assertEquals(
-                    """
-                            {
-                              "messageType": "ACTION",
-                              "action": {
-                                "type": "READY",
-                                "username": "%s"
-                              }
-                            }
-                            """.formatted(expectedUsername), jsonMessage, JSONCompareMode.NON_EXTENSIBLE
+                """
+                    {
+                      "messageType": "ACTION",
+                      "action": {
+                        "type": "READY",
+                        "username": "%s"
+                      }
+                    }
+                    """.formatted(expectedUsername), jsonMessage, JSONCompareMode.NON_EXTENSIBLE
             );
         } catch (JSONException e) {
             throw new RuntimeException(e);
@@ -764,15 +773,15 @@ class IntegrationLobbyTest {
     private void assertUnreadyMessage(String jsonMessage, String expectedUsername) {
         try {
             JSONAssert.assertEquals(
-                    """
-                            {
-                              "messageType": "ACTION",
-                              "action": {
-                                "type": "UNREADY",
-                                "username": "%s"
-                              }
-                            }
-                            """.formatted(expectedUsername), jsonMessage, JSONCompareMode.NON_EXTENSIBLE
+                """
+                    {
+                      "messageType": "ACTION",
+                      "action": {
+                        "type": "UNREADY",
+                        "username": "%s"
+                      }
+                    }
+                    """.formatted(expectedUsername), jsonMessage, JSONCompareMode.NON_EXTENSIBLE
             );
         } catch (JSONException e) {
             throw new RuntimeException(e);

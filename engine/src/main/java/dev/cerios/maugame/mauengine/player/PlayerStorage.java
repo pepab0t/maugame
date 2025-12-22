@@ -2,7 +2,6 @@ package dev.cerios.maugame.mauengine.player;
 
 import dev.cerios.maugame.mauengine.exception.GameException;
 import dev.cerios.maugame.mauengine.game.GameEventListener;
-import dev.cerios.maugame.mauengine.game.GamePlayer;
 
 import java.util.Collection;
 
@@ -18,6 +17,6 @@ public interface PlayerStorage {
     ActionPublisher getActionPublisher();
 
     default ActionPublisher createActionPublisher(ActionPublisherBuilder builder) {
-        return builder.withPlayers(() -> getPlayers().stream()).build();
+        return builder.withPlayers(this::getPlayers).build();
     }
 }

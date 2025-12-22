@@ -3,14 +3,11 @@ package dev.cerios.maugame.mauengine.game;
 import dev.cerios.maugame.mauengine.card.CardComparer;
 import dev.cerios.maugame.mauengine.card.CardManager;
 import dev.cerios.maugame.mauengine.player.PlayerContext;
-import dev.cerios.maugame.mauengine.player.PlayerRunningState;
 import dev.cerios.maugame.mauengine.player.PlayerStateFactory;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Random;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 @RequiredArgsConstructor
@@ -32,7 +29,11 @@ public class GameFactory {
         return createGame(random, minPlayers, maxPlayers, turnTimeoutMs);
     }
 
-    public Game createGame() {
+    Game createGame() {
         return createGame(2, 5, 60_000);
+    }
+
+    public Game createGame(GameSettings settings) {
+        return createGame(settings.getMinPlayers(), settings.getMaxPlayers(), settings.getTurnTimeoutMs());
     }
 }
