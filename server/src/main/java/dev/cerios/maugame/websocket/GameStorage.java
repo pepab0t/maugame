@@ -65,7 +65,7 @@ public class GameStorage {
     }
 
     public GamePlayer registerToNew(String username, String gameName, boolean isPrivate) throws LobbyAlreadyExistsException {
-        var newGame = gameFactory.createGame();
+        var newGame = gameFactory.createGame(mauSettings);
         runLocked(
             lock.writeLock(), () -> {
                 if (gameRefs.containsKey(gameName)) {
@@ -105,7 +105,7 @@ public class GameStorage {
     }
 
     private Game createAndStorePublicGame() {
-        var g = gameFactory.createGame(2, mauSettings.getMaxPlayers(), 600_000);
+        var g = gameFactory.createGame(mauSettings);
         publicGames.putLast(g.getId(), new NamedGame(g));
         g.listenStart(this::remove);
         return g;

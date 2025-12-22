@@ -63,18 +63,18 @@ public class MessageDistributor {
             if (ps == null)
                 return;
             ps.queue().add(() -> storage.getSessionInstant(playerId)
-                    .ifPresentOrElse(
-                            session -> {
-                                try {
-                                    session.sendMessage(new TextMessage(objectMapper.writeValueAsString(message)));
-                                } catch (IllegalStateException e) {
-                                    log.info("error while sending message to session {}", session.getId());
-                                } catch (IOException e) {
-                                    log.info("Message {} could not be serialized.", message, e);
-                                }
-                            },
-                            () -> log.debug("Message {} will not be sent, since session for player {} not found.", message, playerId)
-                    )
+                .ifPresentOrElse(
+                    session -> {
+                        try {
+                            session.sendMessage(new TextMessage(objectMapper.writeValueAsString(message)));
+                        } catch (IllegalStateException e) {
+                            log.info("error while sending message to session {}", session.getId());
+                        } catch (IOException e) {
+                            log.info("Message {} could not be serialized.", message, e);
+                        }
+                    },
+                    () -> log.debug("Message {} will not be sent, since session for player {} not found.", message, playerId)
+                )
             );
             executor.execute(() -> {
                 try {
@@ -95,13 +95,13 @@ public class MessageDistributor {
             var dto = mapAction(a);
 
             sendMessage(
-                    session,
-                    new TextMessage(objectMapper.writeValueAsString(Message.createActionMessage(dto)))
+                session,
+                new TextMessage(objectMapper.writeValueAsString(Message.createActionMessage(dto)))
             );
 
-            if (a.getType() == Action.ActionType.END_GAME)
-                storage.removePlayerById(playerId);
             if (a.getType() == Action.ActionType.DISQUALIFIED)
+                storage.removePlayerById(playerId);
+            if (a.getType() == Action.ActionType.DESTROY)
                 storage.removePlayerById(playerId);
 
         } catch (JsonProcessingException e) {

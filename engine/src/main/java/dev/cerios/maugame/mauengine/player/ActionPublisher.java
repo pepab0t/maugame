@@ -4,10 +4,10 @@ import dev.cerios.maugame.mauengine.game.action.Action;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 
+import java.util.Collection;
 import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 public interface ActionPublisher {
 
@@ -22,13 +22,13 @@ public interface ActionPublisher {
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 class ActionPublisherImpl implements ActionPublisher {
 
-    private final Supplier<Stream<Player>> players;
+    private final Supplier<Collection<Player>> players;
 
     private void distributeAction(
-            Action action,
-            Predicate<Player> playerPredicate
+        Action action,
+        Predicate<Player> playerPredicate
     ) {
-        var s = players.get();
+        var s = players.get().stream();
         if (playerPredicate != null)
             s = s.filter(playerPredicate);
         s.forEach(player -> player.trigger(action));
@@ -48,9 +48,9 @@ class ActionPublisherImpl implements ActionPublisher {
 }
 
 class ActionPublisherBuilder {
-    private Supplier<Stream<Player>> players;
+    private Supplier<Collection<Player>> players;
 
-    public ActionPublisherBuilder withPlayers(Supplier<Stream<Player>> players) {
+    public ActionPublisherBuilder withPlayers(Supplier<Collection<Player>> players) {
         this.players = players;
         return this;
     }

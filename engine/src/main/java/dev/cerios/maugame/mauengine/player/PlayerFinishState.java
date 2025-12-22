@@ -30,13 +30,16 @@ public class PlayerFinishState implements PlayerReadyStorage {
 
 
     PlayerFinishState(Collection<Player> players, int minPlayers, UUID gameId, ActionPublisherBuilder builder, Consumer<Collection<Player>> stateSwitcher) {
-        this.minPlayers = minPlayers;
-        this.gameId = gameId;
-        this.actionPublisher = createActionPublisher(builder);
-        this.stateSwitcher = stateSwitcher;
         for (Player player : players) {
             this.players.put(player.getPlayerId(), player);
             this.readyStates.put(player.getPlayerId(), new Ready(player));
+        }
+        this.actionPublisher = createActionPublisher(builder);
+        this.minPlayers = minPlayers;
+        this.gameId = gameId;
+        this.stateSwitcher = stateSwitcher;
+        if (players.size() < minPlayers) {
+            destroy();
         }
     }
 
@@ -54,15 +57,19 @@ public class PlayerFinishState implements PlayerReadyStorage {
         actionPublisher.publishActionToAll(new RemovePlayerAction(player));
 
         if (players.size() <= minPlayers) {
-            actionPublisher.publishActionToAll(new DestroyAction(gameId));
-            players.clear();
-            readyStates.clear();
+            destroy();
         } else {
             for (var ready : readyStates.values()) {
                 if (ready.set(false))
                     actionPublisher.publishActionToAll(new UnreadyAction(ready.getPlayer().getUsername()));
             }
         }
+    }
+
+    private void destroy() {
+        actionPublisher.publishActionToAll(new DestroyAction(gameId));
+        players.clear();
+        readyStates.clear();
     }
 
     @Override
@@ -74,7 +81,7 @@ public class PlayerFinishState implements PlayerReadyStorage {
 
     @Override
     public List<Player> getPlayers() {
-        return players.valueList();
+        return new ArrayList<>(players.valueList());
     }
 
     @Override

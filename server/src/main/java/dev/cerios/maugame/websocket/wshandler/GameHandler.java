@@ -4,9 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.cerios.maugame.mauengine.exception.GameException;
 import dev.cerios.maugame.websocket.GameService;
 import dev.cerios.maugame.websocket.RequestProcessor;
-import dev.cerios.maugame.websocket.exception.InvalidHandshakeException;
 import dev.cerios.maugame.websocket.exception.MauTimeoutException;
-import dev.cerios.maugame.websocket.exception.NotFoundException;
 import dev.cerios.maugame.websocket.exception.ServerException;
 import dev.cerios.maugame.websocket.message.Message;
 import lombok.RequiredArgsConstructor;
@@ -19,10 +17,6 @@ import org.springframework.web.socket.handler.ConcurrentWebSocketSessionDecorato
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.io.IOException;
-import java.util.Optional;
-
-import static dev.cerios.maugame.websocket.message.Message.createErrorMessage;
-import static dev.cerios.maugame.websocket.wshandler.ParameterParser.*;
 
 @Slf4j
 @Component
@@ -65,7 +59,7 @@ public class GameHandler extends TextWebSocketHandler {
         try {
             gameService.disconnectPlayer(session.getId());
         } catch (Exception e) {
-            log.debug("error disconnect player", e);
+            log.debug("error disconnect player: {}", e.getMessage());
         }
     }
 

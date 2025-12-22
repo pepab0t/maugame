@@ -4,10 +4,7 @@ import dev.cerios.maugame.mauengine.exception.GameException;
 import dev.cerios.maugame.mauengine.exception.MauEngineBaseException;
 import dev.cerios.maugame.mauengine.exception.NotSupportedOperation;
 import dev.cerios.maugame.mauengine.game.GameEventListener;
-import dev.cerios.maugame.mauengine.game.action.EndAction;
-import dev.cerios.maugame.mauengine.game.action.PlayerShiftAction;
-import dev.cerios.maugame.mauengine.game.action.RemovePlayerAction;
-import dev.cerios.maugame.mauengine.game.action.SendRankAction;
+import dev.cerios.maugame.mauengine.game.action.*;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.map.ListOrderedMap;
@@ -45,32 +42,32 @@ public class PlayerRunningState implements PlayerStorage {
     private final List<Consumer<Player>> timeoutListeners = new LinkedList<>();
 
     PlayerRunningState(
-            Random random,
-            Collection<Player> playerCollection,
-            long turnTimeoutMs,
-            Consumer<Collection<Player>> stateSwitcher,
-            ReadWriteLock globalLock,
-            ActionPublisherBuilder builder
+        Random random,
+        Collection<Player> playerCollection,
+        long turnTimeoutMs,
+        Consumer<Collection<Player>> stateSwitcher,
+        ReadWriteLock globalLock,
+        ActionPublisherBuilder builder
     ) {
         this(
-                random,
-                playerCollection,
-                turnTimeoutMs,
-                stateSwitcher,
-                globalLock,
-                builder,
-                Executors.newScheduledThreadPool(1, Thread.ofVirtual().factory())
+            random,
+            playerCollection,
+            turnTimeoutMs,
+            stateSwitcher,
+            globalLock,
+            builder,
+            Executors.newScheduledThreadPool(1, Thread.ofVirtual().factory())
         );
     }
 
     PlayerRunningState(
-            Random random,
-            Collection<Player> playerCollection,
-            long turnTimeoutMs,
-            Consumer<Collection<Player>> stateSwitcher,
-            ReadWriteLock globalLock,
-            ActionPublisherBuilder builder,
-            ScheduledExecutorService executor
+        Random random,
+        Collection<Player> playerCollection,
+        long turnTimeoutMs,
+        Consumer<Collection<Player>> stateSwitcher,
+        ReadWriteLock globalLock,
+        ActionPublisherBuilder builder,
+        ScheduledExecutorService executor
     ) {
         this.random = random;
         this.actionPublisher = createActionPublisher(builder);
@@ -79,8 +76,8 @@ public class PlayerRunningState implements PlayerStorage {
         this.globalLock = globalLock;
 
         this.players.putAll(
-                playerCollection.stream()
-                        .collect(LinkedHashMap::new, (map, p) -> map.put(p.getPlayerId(), p), LinkedHashMap::putAll)
+            playerCollection.stream()
+                .collect(LinkedHashMap::new, (map, p) -> map.put(p.getPlayerId(), p), LinkedHashMap::putAll)
         );
         this.activeCounter = new AtomicInteger(this.players.size());
         this.executor = executor;
@@ -95,7 +92,7 @@ public class PlayerRunningState implements PlayerStorage {
 
     @Override
     public Collection<Player> getPlayers() {
-        return Collections.unmodifiableCollection(players.valueList());
+        return new ArrayList<>(players.valueList());
     }
 
     public Player getCurrentPlayer() {
@@ -189,6 +186,7 @@ public class PlayerRunningState implements PlayerStorage {
             l.lock();
             var activeCount = activeCounter.decrementAndGet();
             players.remove(player.getPlayerId());
+            actionPublisher.publishAction(player, new DisqualifiedAction());
             actionPublisher.publishActionToAll(new RemovePlayerAction(player));
             if (activeCount == 1) {
                 win(findNextPlayer());
@@ -213,12 +211,12 @@ public class PlayerRunningState implements PlayerStorage {
      */
     public long getLastExpire(String playerId) {
         return Optional.ofNullable(futures.get(playerId))
-                .map(FutureWithTimeout::expireAtMs)
-                .orElse(-1L);
+            .map(FutureWithTimeout::expireAtMs)
+            .orElse(-1L);
     }
 
     public List<String> getPlayerRank() {
-        return Collections.unmodifiableList(new LinkedList<>(playerRank));
+        return new ArrayList<>(new LinkedList<>(playerRank));
     }
 
     private Player findNextPlayer() {

@@ -2,8 +2,8 @@ package dev.cerios.maugame.websocket.config;
 
 import dev.cerios.maugame.mauengine.game.GameFactory;
 import dev.cerios.maugame.websocket.MauSettings;
-import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -13,6 +13,7 @@ import java.util.concurrent.Executors;
 
 @Configuration
 @RequiredArgsConstructor
+@EnableConfigurationProperties(MauSettings.class)
 public class AppConfig {
 
     @Bean
