@@ -1,5 +1,5 @@
 # ---- Stage 1: Build the JAR with Gradle ----
-FROM gradle:8.10-jdk21 AS builder
+FROM gradle:9.2.1-jdk25 AS builder
 
 WORKDIR /home/gradle/project
 
@@ -17,7 +17,7 @@ COPY . .
 RUN gradle :server:bootJar --no-daemon
 
 # ---- Stage 2: Runtime image ----
-FROM eclipse-temurin:21-jre-alpine AS runtime
+FROM eclipse-temurin:25-jre-alpine AS runtime
 
 LABEL authors="josefcernik"
 
