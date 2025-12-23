@@ -13,6 +13,9 @@ public class MauWebsocketApplication {
         SpringApplication.run(MauWebsocketApplication.class, args);
     }
 
+    // TODO when remove player -> shift to next
+    // TODO unready
+
     @Bean
     public CommandLineRunner commandLineRunner(MauSettings settings) {
         return _ -> log.info("started with settings: {}", settings);

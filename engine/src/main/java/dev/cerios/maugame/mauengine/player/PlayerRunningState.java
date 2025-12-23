@@ -190,6 +190,8 @@ public class PlayerRunningState implements PlayerStorage {
             actionPublisher.publishActionToAll(new RemovePlayerAction(player));
             if (activeCount == 1) {
                 win(findNextPlayer());
+            } else {
+                shiftPlayer();
             }
             for (var listener : timeoutListeners) {
                 listener.accept(player);
