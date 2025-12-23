@@ -7,10 +7,11 @@ public enum RequestType {
     public enum MoveType {
         PLAY,
         DRAW,
-        PASS;
+        PASS
     }
 
     public enum ControlType {
-        READY
+        READY,
+        UNREADY
     }
 }

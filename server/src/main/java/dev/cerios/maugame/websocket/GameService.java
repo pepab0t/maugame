@@ -90,6 +90,14 @@ public class GameService {
         gameOpt.get().setReady(playerId);
     }
 
+    public void setPlayerUnready(String playerId) throws NotFoundException, GameException {
+        var gameOpt = storage.getGame(playerId);
+        if (gameOpt.isEmpty()) {
+            throw new NotFoundException("Game not found for given player.");
+        }
+        gameOpt.get().setUnready(playerId);
+    }
+
     public void playCard(String playerId, Card card, Color nextColor) throws MauEngineBaseException {
         var game = storage.getGame(playerId).orElseThrow(() -> new RuntimeException("No game"));
         game.playCardMove(playerId, card, nextColor);

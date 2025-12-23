@@ -92,7 +92,7 @@ public class PlayerRunningState implements PlayerStorage {
 
     @Override
     public Collection<Player> getPlayers() {
-        return new ArrayList<>(players.valueList());
+        return List.copyOf(players.valueList());
     }
 
     public Player getCurrentPlayer() {
@@ -218,7 +218,7 @@ public class PlayerRunningState implements PlayerStorage {
     }
 
     public List<String> getPlayerRank() {
-        return new ArrayList<>(new LinkedList<>(playerRank));
+        return List.copyOf(playerRank);
     }
 
     private Player findNextPlayer() {

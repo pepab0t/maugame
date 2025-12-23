@@ -11,12 +11,13 @@ import java.util.*;
 import java.util.function.Consumer;
 
 @Slf4j
-public class PlayerLobbyState implements PlayerReadyStorage {
+public class PlayerLobbyState extends PlayerReadyStorage {
     private final int minPlayers;
     private final int maxPlayers;
 
     private final ListOrderedMap<String, Player> players = new ListOrderedMap<>();
     private final Set<String> usernames = new HashSet<>();
+    @Getter
     private final Map<String, Ready> readyStates = new HashMap<>();
 
     private final UUID gameId;
@@ -93,7 +94,7 @@ public class PlayerLobbyState implements PlayerReadyStorage {
 
     @Override
     public List<Player> getPlayers() {
-        return new ArrayList<>(players.valueList());
+        return List.copyOf(players.valueList());
     }
 
     @Override
@@ -119,6 +120,16 @@ public class PlayerLobbyState implements PlayerReadyStorage {
 
         triggerStart();
         stateSwitcher.accept(getPlayers());
+    }
+
+    @Override
+    public void setUnready(String playerId) throws GameException {
+        var ready = getPlayerReady(playerId);
+        if (!ready.set(false)) {
+            log.trace("game {}: players {} ready status false not changed", gameId, playerId);
+            return;
+        }
+        actionPublisher.publishActionToAll(new UnreadyAction(ready.getPlayer().getUsername()));
     }
 
     public void listenStart(Consumer<UUID> listener) {

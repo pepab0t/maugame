@@ -15,11 +15,12 @@ import java.util.*;
 import java.util.function.Consumer;
 
 @Slf4j
-public class PlayerFinishState implements PlayerReadyStorage {
+class PlayerFinishState extends PlayerReadyStorage {
     private final UUID gameId;
     private final int minPlayers;
 
     private final ListOrderedMap<String, Player> players = new ListOrderedMap<>();
+    @Getter
     private final Map<String, Ready> readyStates = new HashMap<>();
 
     private final List<Consumer<UUID>> startListeners = new LinkedList<>();
@@ -81,15 +82,12 @@ public class PlayerFinishState implements PlayerReadyStorage {
 
     @Override
     public List<Player> getPlayers() {
-        return new ArrayList<>(players.valueList());
+        return List.copyOf(players.valueList());
     }
 
     @Override
     public void setReady(String playerId) throws GameException {
-        var ready = readyStates.get(playerId);
-        if (ready == null) {
-            throw new GameException("Player " + playerId + " not found.");
-        }
+        var ready = getPlayerReady(playerId);
 
         if (!ready.set(true)) {
             log.trace("game {}: players {} ready status true not changed", gameId, playerId);
@@ -101,6 +99,16 @@ public class PlayerFinishState implements PlayerReadyStorage {
 
         triggerStart();
         stateSwitcher.accept(getPlayers());
+    }
+
+    @Override
+    public void setUnready(String playerId) throws GameException {
+        var ready = getPlayerReady(playerId);
+        if (!ready.set(false)) {
+            log.trace("game {}: players {} ready status false not changed", gameId, playerId);
+            return;
+        }
+        actionPublisher.publishActionToAll(new UnreadyAction(ready.getPlayer().getUsername()));
     }
 
     public void listenStart(Consumer<UUID> startListener) {

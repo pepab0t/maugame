@@ -133,6 +133,20 @@ public class Game {
         }
     }
 
+    public void setUnready(String playerId) throws GameException {
+        var l = lock.writeLock();
+        try {
+            l.lock();
+            if (playerContext.getPlayers() instanceof PlayerReadyStorage players) {
+                players.setUnready(playerId);
+            } else {
+                throw new NotSupportedOperation("set unready", playerContext.getPlayers().getClass());
+            }
+        } finally {
+            l.unlock();
+        }
+    }
+
     public int getFreeCapacity() {
         var l = lock.readLock();
         try {

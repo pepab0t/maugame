@@ -1,6 +1,5 @@
 package dev.cerios.maugame.websocket;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.cerios.maugame.mauengine.exception.MauEngineBaseException;
@@ -39,12 +38,12 @@ public class RequestProcessor {
 
             switch (requestType) {
                 case MOVE -> processMove(
-                        Optional.ofNullable(root.get("move")).orElseThrow(() -> new InvalidCommandException("Missing field: move")),
-                        playerId
+                    Optional.ofNullable(root.get("move")).orElseThrow(() -> new InvalidCommandException("Missing field: move")),
+                    playerId
                 );
                 case CONTROL -> processControl(
-                        Optional.ofNullable(root.get("control")).orElseThrow(() -> new InvalidCommandException("Missing field: control")),
-                        playerId
+                    Optional.ofNullable(root.get("control")).orElseThrow(() -> new InvalidCommandException("Missing field: control")),
+                    playerId
                 );
             }
         } catch (Exception e) {
@@ -74,6 +73,7 @@ public class RequestProcessor {
 
         switch (controlType) {
             case READY -> gameService.setPlayerReady(playerId);
+            case UNREADY -> gameService.setPlayerUnready(playerId);
             default -> throw new InvalidCommandException("Invalid control type");
         }
     }
