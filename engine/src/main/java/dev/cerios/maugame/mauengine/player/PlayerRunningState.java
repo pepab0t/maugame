@@ -25,6 +25,7 @@ public class PlayerRunningState implements PlayerStorage {
 
     private final ListOrderedMap<String, Player> players = new ListOrderedMap<>();
     private int nextIndex;
+    private int scorePoints = 3;
     private final List<String> playerRank = new LinkedList<>();
     private final Consumer<Collection<Player>> stateSwitcher;
 
@@ -39,11 +40,14 @@ public class PlayerRunningState implements PlayerStorage {
 
     private final ReadWriteLock globalLock;
 
+    private final Map<String, Integer> scores;
+
     private final List<Consumer<Player>> timeoutListeners = new LinkedList<>();
 
     PlayerRunningState(
         Random random,
         Collection<Player> playerCollection,
+        Map<String, Integer> scores,
         long turnTimeoutMs,
         Consumer<Collection<Player>> stateSwitcher,
         ReadWriteLock globalLock,
@@ -52,6 +56,7 @@ public class PlayerRunningState implements PlayerStorage {
         this(
             random,
             playerCollection,
+            scores,
             turnTimeoutMs,
             stateSwitcher,
             globalLock,
@@ -63,6 +68,7 @@ public class PlayerRunningState implements PlayerStorage {
     PlayerRunningState(
         Random random,
         Collection<Player> playerCollection,
+        Map<String, Integer> scores,
         long turnTimeoutMs,
         Consumer<Collection<Player>> stateSwitcher,
         ReadWriteLock globalLock,
@@ -74,6 +80,7 @@ public class PlayerRunningState implements PlayerStorage {
         this.turnTimeoutMs = turnTimeoutMs;
         this.stateSwitcher = stateSwitcher;
         this.globalLock = globalLock;
+        this.scores = scores;
 
         this.players.putAll(
             playerCollection.stream()
@@ -150,8 +157,10 @@ public class PlayerRunningState implements PlayerStorage {
      */
     private boolean win(Player player) {
         player.deactivate();
+        player.getHand().clear();
         activeCounter.decrementAndGet();
         playerRank.add(player.getUsername());
+        addScore(player.getUsername());
 
         var gameContinues = activeCounter.get() > 1;
         if (gameContinues)
@@ -160,10 +169,33 @@ public class PlayerRunningState implements PlayerStorage {
             if (activeCounter.get() == 1) {
                 loseLastActivePlayer();
             }
-            actionPublisher.publishActionToAll(new EndAction(getPlayerRank()));
+            actionPublisher.publishActionToAll(new EndAction(getPlayerRank(), provideScoresCopy()));
             stateSwitcher.accept(getPlayers());
         }
         return gameContinues;
+    }
+
+    private Map<String, Integer> provideScoresCopy() {
+        List<Map.Entry<String, Integer>> list = new ArrayList<>(scores.entrySet());
+        list.sort((e1, e2) -> e2.getValue().compareTo(e1.getValue()));
+        Map<String, Integer> result = new LinkedHashMap<>();
+        for (var entry : list) {
+            result.put(entry.getKey(), entry.getValue());
+        }
+
+        return Collections.unmodifiableMap(result);
+    }
+
+    private void addScore(String username) {
+        int nextScore = provideNextScore();
+        scores.compute(username, (_, v) -> v == null ? nextScore : v + nextScore);
+    }
+
+    private int provideNextScore() {
+        if (scorePoints > 0) {
+            return scorePoints--;
+        }
+        return 0;
     }
 
     private void initializePlayer() {
@@ -234,8 +266,10 @@ public class PlayerRunningState implements PlayerStorage {
 
     private void loseLastActivePlayer() {
         var losingPlayer = findNextPlayer();
+        losingPlayer.getHand().clear();
         losingPlayer.deactivate();
         activeCounter.decrementAndGet();
         playerRank.add(losingPlayer.getUsername());
+        addScore(losingPlayer.getUsername());
     }
 }

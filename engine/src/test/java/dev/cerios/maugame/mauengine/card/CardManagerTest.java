@@ -25,15 +25,15 @@ class CardManagerTest {
     void setUp() {
         var random = new Random(868);
         cardManager = new CardManager(
-                List.of(
-                        new Card(CardType.QUEEN, Color.HEARTS),
-                        new Card(CardType.SEVEN, Color.SPADES),
-                        new Card(CardType.EIGHT, Color.DIAMONDS),
-                        new Card(CardType.NINE, Color.HEARTS),
-                        new Card(CardType.KING, Color.CLUBS)
-                ),
-                random,
-                comparer
+            List.of(
+                new Card(CardType.QUEEN, Color.HEARTS),
+                new Card(CardType.SEVEN, Color.SPADES),
+                new Card(CardType.EIGHT, Color.DIAMONDS),
+                new Card(CardType.NINE, Color.HEARTS),
+                new Card(CardType.KING, Color.CLUBS)
+            ),
+            random,
+            comparer
         );
     }
 
@@ -70,16 +70,16 @@ class CardManagerTest {
         assertThat(cardManager.deckSize()).isEqualTo(4);
         assertThat(drawnCard).isEqualTo(new Card(CardType.QUEEN, Color.HEARTS));
         assertThat(
-                ((Queue<Card>) getField(cardManager, "deck"))
-                        .stream()
-                        .toList()
+            ((Queue<Card>) getField(cardManager, "deck"))
+                .stream()
+                .toList()
         )
-                .containsExactly(
-                        new Card(CardType.SEVEN, Color.SPADES),
-                        new Card(CardType.EIGHT, Color.DIAMONDS),
-                        new Card(CardType.NINE, Color.HEARTS),
-                        new Card(CardType.KING, Color.CLUBS)
-                );
+            .containsExactly(
+                new Card(CardType.SEVEN, Color.SPADES),
+                new Card(CardType.EIGHT, Color.DIAMONDS),
+                new Card(CardType.NINE, Color.HEARTS),
+                new Card(CardType.KING, Color.CLUBS)
+            );
     }
 
     @Test
@@ -90,19 +90,19 @@ class CardManagerTest {
         // then
         assertThat(cardManager.deckSize()).isEqualTo(1);
         assertThat(drawnCards).containsExactly(
-                new Card(CardType.QUEEN, Color.HEARTS),
-                new Card(CardType.SEVEN, Color.SPADES),
-                new Card(CardType.EIGHT, Color.DIAMONDS),
-                new Card(CardType.NINE, Color.HEARTS)
+            new Card(CardType.QUEEN, Color.HEARTS),
+            new Card(CardType.SEVEN, Color.SPADES),
+            new Card(CardType.EIGHT, Color.DIAMONDS),
+            new Card(CardType.NINE, Color.HEARTS)
         );
         assertThat(
-                ((Queue<Card>) getField(cardManager, "deck"))
-                        .stream()
-                        .toList()
+            ((Queue<Card>) getField(cardManager, "deck"))
+                .stream()
+                .toList()
         )
-                .containsExactly(
-                        new Card(CardType.KING, Color.CLUBS)
-                );
+            .containsExactly(
+                new Card(CardType.KING, Color.CLUBS)
+            );
     }
 
     @Test
@@ -114,21 +114,14 @@ class CardManagerTest {
 
         // when, then
         assertThatThrownBy(() -> cardManager.draw())
-                .isInstanceOf(CardException.class);
+            .isInstanceOf(CardException.class);
     }
 
     @Test
     void whenDrawMoreThanDeckContains_thenThrow() {
         // when, then
         assertThatThrownBy(() -> cardManager.draw(5))
-                .isInstanceOf(CardException.class);
-    }
-
-    @Test
-    void whenCardManagerInitializedWithEmptyCollection_thenThrow() {
-        // when, then
-        assertThatThrownBy(() -> new CardManager(Collections.emptyList(), new Random(), comparer))
-                .isInstanceOf(IllegalStateException.class);
+            .isInstanceOf(CardException.class);
     }
 
     @Test
@@ -145,12 +138,12 @@ class CardManagerTest {
         // then
         assertThat(canBePlayed).isTrue();
         assertThat(((Queue<Card>) getField(cardManager, "deck")).stream())
-                .containsExactly(
-                        new Card(CardType.EIGHT, Color.DIAMONDS),
-                        new Card(CardType.NINE, Color.HEARTS),
-                        new Card(CardType.KING, Color.CLUBS),
-                        new Card(CardType.QUEEN, Color.HEARTS)
-                );
+            .containsExactly(
+                new Card(CardType.EIGHT, Color.DIAMONDS),
+                new Card(CardType.NINE, Color.HEARTS),
+                new Card(CardType.KING, Color.CLUBS),
+                new Card(CardType.QUEEN, Color.HEARTS)
+            );
         assertThat(cardManager.deckSize()).isEqualTo(4);
         assertThat(cardManager.peekPile()).isEqualTo(cardToPlay);
         verify(comparer).clear();
@@ -170,11 +163,11 @@ class CardManagerTest {
         // then
         assertThat(canBePlayed).isFalse();
         assertThat(((Queue<Card>) getField(cardManager, "deck")).stream())
-                .containsExactly(
-                        new Card(CardType.EIGHT, Color.DIAMONDS),
-                        new Card(CardType.NINE, Color.HEARTS),
-                        new Card(CardType.KING, Color.CLUBS)
-                );
+            .containsExactly(
+                new Card(CardType.EIGHT, Color.DIAMONDS),
+                new Card(CardType.NINE, Color.HEARTS),
+                new Card(CardType.KING, Color.CLUBS)
+            );
         assertThat(cardManager.deckSize()).isEqualTo(3);
         assertThat(cardManager.peekPile()).isEqualTo(pileCard);
     }
@@ -207,7 +200,7 @@ class CardManagerTest {
 
         // when, then
         assertThatThrownBy(() -> cardManager.playCard(cardToPlay, null))
-                .isInstanceOf(CardException.class);
+            .isInstanceOf(CardException.class);
     }
 
     @Test
@@ -231,7 +224,7 @@ class CardManagerTest {
     void whenCardPlayedAndPileNotStarted_thenThrow() {
         // when
         assertThatThrownBy(() -> cardManager.playCard(new Card(CardType.JACK, Color.CLUBS), null))
-                .isInstanceOf(CardException.class);
+            .isInstanceOf(CardException.class);
     }
 
     @Test
@@ -242,20 +235,20 @@ class CardManagerTest {
         // then
         cardManager.shuffleRemaining();
         assertThat(((Queue<Card>) getField(cardManager, "deck")).stream())
-                .containsExactlyInAnyOrder(
-                        new Card(CardType.QUEEN, Color.HEARTS),
-                        new Card(CardType.SEVEN, Color.SPADES),
-                        new Card(CardType.EIGHT, Color.DIAMONDS),
-                        new Card(CardType.NINE, Color.HEARTS),
-                        new Card(CardType.KING, Color.CLUBS)
-                )
-                .doesNotContainSequence(
-                        new Card(CardType.QUEEN, Color.HEARTS),
-                        new Card(CardType.SEVEN, Color.SPADES),
-                        new Card(CardType.EIGHT, Color.DIAMONDS),
-                        new Card(CardType.NINE, Color.HEARTS),
-                        new Card(CardType.KING, Color.CLUBS)
-                );
+            .containsExactlyInAnyOrder(
+                new Card(CardType.QUEEN, Color.HEARTS),
+                new Card(CardType.SEVEN, Color.SPADES),
+                new Card(CardType.EIGHT, Color.DIAMONDS),
+                new Card(CardType.NINE, Color.HEARTS),
+                new Card(CardType.KING, Color.CLUBS)
+            )
+            .doesNotContainSequence(
+                new Card(CardType.QUEEN, Color.HEARTS),
+                new Card(CardType.SEVEN, Color.SPADES),
+                new Card(CardType.EIGHT, Color.DIAMONDS),
+                new Card(CardType.NINE, Color.HEARTS),
+                new Card(CardType.KING, Color.CLUBS)
+            );
     }
 
     @Test
@@ -269,25 +262,25 @@ class CardManagerTest {
         // than
         cardManager.shuffleRemaining();
         assertThat(((Queue<Card>) getField(cardManager, "deck")).stream())
-                .containsExactlyInAnyOrder(
-                        new Card(CardType.SEVEN, Color.SPADES),
-                        new Card(CardType.EIGHT, Color.DIAMONDS),
-                        new Card(CardType.NINE, Color.HEARTS),
-                        new Card(CardType.KING, Color.CLUBS)
-                )
-                .doesNotContainSequence(
-                        new Card(CardType.SEVEN, Color.SPADES),
-                        new Card(CardType.EIGHT, Color.DIAMONDS),
-                        new Card(CardType.NINE, Color.HEARTS),
-                        new Card(CardType.KING, Color.CLUBS)
-                );
+            .containsExactlyInAnyOrder(
+                new Card(CardType.SEVEN, Color.SPADES),
+                new Card(CardType.EIGHT, Color.DIAMONDS),
+                new Card(CardType.NINE, Color.HEARTS),
+                new Card(CardType.KING, Color.CLUBS)
+            )
+            .doesNotContainSequence(
+                new Card(CardType.SEVEN, Color.SPADES),
+                new Card(CardType.EIGHT, Color.DIAMONDS),
+                new Card(CardType.NINE, Color.HEARTS),
+                new Card(CardType.KING, Color.CLUBS)
+            );
         assertThat(cardManager.peekPile()).isEqualTo(pileCard);
     }
 
     @Test
     void factoryIncludesFullSetOfCards() throws Exception {
         // when
-        var created = CardManager.create(new Random(878), comparer);
+        var created = new CardManager(CardManager.createCards(), new Random(878), comparer);
         var cardSet = new HashSet<>(((Queue<Card>) getField(created, "deck")));
 
         // then
@@ -308,20 +301,20 @@ class CardManagerTest {
 
         // when, then
         assertThatThrownBy(() -> cardManager.playCard(cardToPlay, null))
-                .isInstanceOf(CardException.class);
+            .isInstanceOf(CardException.class);
     }
 
     @Test
     void testCardMultiplicationHandledCorrectly() throws Exception {
         // setup
         var manager = new CardManager(
-                List.of(
-                        new Card(CardType.JACK, Color.CLUBS),
-                        new Card(CardType.JACK, Color.CLUBS),
-                        new Card(CardType.JACK, Color.CLUBS)
-                ),
-                new Random(121),
-                comparer
+            List.of(
+                new Card(CardType.JACK, Color.CLUBS),
+                new Card(CardType.JACK, Color.CLUBS),
+                new Card(CardType.JACK, Color.CLUBS)
+            ),
+            new Random(121),
+            comparer
         );
         manager.startPile();
         @SuppressWarnings("unchecked")
@@ -340,7 +333,7 @@ class CardManagerTest {
         assertThat(floatingCards).isEmpty();
         // third card is not in the game
         assertThatThrownBy(() -> manager.playCard(new Card(CardType.JACK, Color.CLUBS), null))
-                .isInstanceOf(CardException.class);
+            .isInstanceOf(CardException.class);
     }
 
     @Test
@@ -349,13 +342,13 @@ class CardManagerTest {
         cardManager.startPile();
         var card = cardManager.draw();
         @SuppressWarnings("unchecked")
-        var floatingCards = (Map<Card,Integer>) getField(cardManager, "floatingCards");
+        var floatingCards = (Map<Card, Integer>) getField(cardManager, "floatingCards");
         when(comparer.compare(any(Card.class), any(Card.class))).thenReturn(true);
 
         floatingCards.put(card, 0);
 
         // when
         assertThatThrownBy(() -> cardManager.playCard(card, null))
-                .isInstanceOf(IllegalStateException.class);
+            .isInstanceOf(IllegalStateException.class);
     }
 }

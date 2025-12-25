@@ -65,6 +65,7 @@ class PlayerRunningStateTest {
     private Random random;
     private ReadWriteLock globalLock;
     private List<Player> testPlayers;
+    private Map<String, Integer> scores = new HashMap<>();
     private final long turnTimeoutMs = 5000L;
 
     @BeforeEach
@@ -74,10 +75,12 @@ class PlayerRunningStateTest {
 
         // Create test players
         testPlayers = List.of(
-                new Player("player1", "user1", eventListener1),
-                new Player("player2", "user2", eventListener2),
-                new Player("player3", "user3", eventListener3)
+            new Player("player1", "user1", eventListener1),
+            new Player("player2", "user2", eventListener2),
+            new Player("player3", "user3", eventListener3)
         );
+
+        scores = new HashMap<>();
 
         when(actionPublisherBuilder.build()).thenReturn(actionPublisher);
         when(actionPublisherBuilder.withPlayers(any())).thenReturn(actionPublisherBuilder);
@@ -103,7 +106,7 @@ class PlayerRunningStateTest {
     private PlayerRunningState createPlayerRunningStateWithMockExecutor() {
         doReturn(mockFuture).when(mockExecutor).schedule(any(Runnable.class), anyLong(), any(TimeUnit.class));
         return new PlayerRunningState(
-                random, testPlayers, turnTimeoutMs, stateSwitcher, globalLock, actionPublisherBuilder, mockExecutor
+            random, testPlayers, scores, turnTimeoutMs, stateSwitcher, globalLock, actionPublisherBuilder, mockExecutor
         );
     }
 
@@ -111,7 +114,7 @@ class PlayerRunningStateTest {
     void constructor_ShouldInitializeCorrectly() {
         // When
         playerRunningState = new PlayerRunningState(
-                random, testPlayers, turnTimeoutMs, stateSwitcher, globalLock, actionPublisherBuilder
+            random, testPlayers, scores, turnTimeoutMs, stateSwitcher, globalLock, actionPublisherBuilder
         );
 
         // Then
@@ -135,8 +138,8 @@ class PlayerRunningStateTest {
         // Then
         assertEquals(3, players.size());
         assertThrows(
-                UnsupportedOperationException.class,
-                () -> players.add(new Player("newId", "newUser", eventListener1))
+            UnsupportedOperationException.class,
+            () -> players.add(new Player("newId", "newUser", eventListener1))
         );
     }
 
@@ -160,8 +163,8 @@ class PlayerRunningStateTest {
 
         // When & Then
         assertThrows(
-                NotSupportedOperation.class,
-                () -> playerRunningState.registerPlayer("newUser", eventListener1)
+            NotSupportedOperation.class,
+            () -> playerRunningState.registerPlayer("newUser", eventListener1)
         );
     }
 
@@ -172,8 +175,8 @@ class PlayerRunningStateTest {
 
         // When & Then
         assertThrows(
-                NotSupportedOperation.class,
-                () -> playerRunningState.removePlayer("player1")
+            NotSupportedOperation.class,
+            () -> playerRunningState.removePlayer("player1")
         );
     }
 
@@ -198,8 +201,8 @@ class PlayerRunningStateTest {
 
         // When & Then
         GameException exception = assertThrows(
-                GameException.class,
-                () -> playerRunningState.getPlayer("nonExistentPlayer")
+            GameException.class,
+            () -> playerRunningState.getPlayer("nonExistentPlayer")
         );
 
         assertEquals("No player with id `nonExistentPlayer` was found.", exception.getMessage());
@@ -212,15 +215,15 @@ class PlayerRunningStateTest {
         Player currentPlayer = playerRunningState.getCurrentPlayer();
 
         PlayerRunningState.BiFunctionChecked<ActionPublisher, Player, Boolean> playerFunction =
-                (publisher, player) -> {
-                    assertEquals(actionPublisher, publisher);
-                    assertEquals(currentPlayer, player);
-                    return false; // Don't win
-                };
+            (publisher, player) -> {
+                assertEquals(actionPublisher, publisher);
+                assertEquals(currentPlayer, player);
+                return false; // Don't win
+            };
 
         // When & Then
         assertDoesNotThrow(() ->
-                playerRunningState.getPlayerForPlay(currentPlayer.getPlayerId(), playerFunction));
+            playerRunningState.getPlayerForPlay(currentPlayer.getPlayerId(), playerFunction));
 
         // Verify poke was called (future should be cancelled)
         verify(mockFuture).cancel(true);
@@ -236,18 +239,18 @@ class PlayerRunningStateTest {
 
         // Find a non-current player
         String nonCurrentPlayerId = testPlayers.stream()
-                .filter(p -> !p.getPlayerId().equals(currentPlayer.getPlayerId()))
-                .findFirst()
-                .get()
-                .getPlayerId();
+            .filter(p -> !p.getPlayerId().equals(currentPlayer.getPlayerId()))
+            .findFirst()
+            .get()
+            .getPlayerId();
 
         PlayerRunningState.BiFunctionChecked<ActionPublisher, Player, Boolean> playerFunction =
-                (publisher, player) -> false;
+            (publisher, player) -> false;
 
         // When & Then
         GameException exception = assertThrows(
-                GameException.class,
-                () -> playerRunningState.getPlayerForPlay(nonCurrentPlayerId, playerFunction)
+            GameException.class,
+            () -> playerRunningState.getPlayerForPlay(nonCurrentPlayerId, playerFunction)
         );
 
         assertEquals("It's not a player's turn.", exception.getMessage());
@@ -260,7 +263,7 @@ class PlayerRunningStateTest {
         Player currentPlayer = playerRunningState.getCurrentPlayer();
 
         PlayerRunningState.BiFunctionChecked<ActionPublisher, Player, Boolean> winFunction =
-                (publisher, player) -> true; // Player wins
+            (publisher, player) -> true; // Player wins
 
         // When
         playerRunningState.getPlayerForPlay(currentPlayer.getPlayerId(), winFunction);
@@ -276,13 +279,14 @@ class PlayerRunningStateTest {
     void getPlayerForPlay_ShouldEndGameWhenOnlyOnePlayerLeft() throws MauEngineBaseException {
         // Given
         List<Player> twoPlayers = List.of(
-                new Player("player1", "user1", eventListener1),
-                new Player("player2", "user2", eventListener2)
+            new Player("player1", "user1", eventListener1),
+            new Player("player2", "user2", eventListener2)
         );
 
         var switcher = new Consumer<Collection<Player>>() {
             @Getter
             private final Collection<Player> players = new LinkedList<>();
+
             @Override
             public void accept(Collection<Player> players) {
                 this.players.addAll(players);
@@ -290,7 +294,7 @@ class PlayerRunningStateTest {
         };
 
         playerRunningState = new PlayerRunningState(
-                random, twoPlayers, turnTimeoutMs, switcher, globalLock, actionPublisherBuilder
+            random, twoPlayers, scores, turnTimeoutMs, switcher, globalLock, actionPublisherBuilder
         );
 
         try {
@@ -306,7 +310,7 @@ class PlayerRunningStateTest {
         Player currentPlayer = playerRunningState.getCurrentPlayer();
 
         PlayerRunningState.BiFunctionChecked<ActionPublisher, Player, Boolean> winFunction =
-                (publisher, player) -> true; // Player wins
+            (publisher, player) -> true; // Player wins
 
         // When
         playerRunningState.getPlayerForPlay(currentPlayer.getPlayerId(), winFunction);
@@ -346,7 +350,7 @@ class PlayerRunningStateTest {
 
         // Simulate a turn
         PlayerRunningState.BiFunctionChecked<ActionPublisher, Player, Boolean> playerFunction =
-                (publisher, player) -> false;
+            (publisher, player) -> false;
         playerRunningState.getPlayerForPlay(currentPlayer.getPlayerId(), playerFunction);
 
         Player nextCurrentPlayer = playerRunningState.getCurrentPlayer();
@@ -378,7 +382,7 @@ class PlayerRunningStateTest {
 
         // Make a player win
         PlayerRunningState.BiFunctionChecked<ActionPublisher, Player, Boolean> winFunction =
-                (publisher, player) -> true;
+            (publisher, player) -> true;
         playerRunningState.getPlayerForPlay(currentPlayer.getPlayerId(), winFunction);
 
         // When
@@ -388,8 +392,8 @@ class PlayerRunningStateTest {
         assertEquals(1, rank.size());
         assertEquals(currentPlayer.getUsername(), rank.get(0));
         assertThrows(
-                UnsupportedOperationException.class,
-                () -> rank.add("newPlayer")
+            UnsupportedOperationException.class,
+            () -> rank.add("newPlayer")
         );
     }
 
@@ -400,7 +404,7 @@ class PlayerRunningStateTest {
         long expireTime = System.currentTimeMillis() + 1000;
 
         PlayerRunningState.FutureWithTimeout futureWithTimeout =
-                new PlayerRunningState.FutureWithTimeout(mockInnerFuture, expireTime);
+            new PlayerRunningState.FutureWithTimeout(mockInnerFuture, expireTime);
 
         // When
         futureWithTimeout.cancel();
@@ -445,7 +449,7 @@ class PlayerRunningStateTest {
 
         // First player wins
         PlayerRunningState.BiFunctionChecked<ActionPublisher, Player, Boolean> winFunction =
-                (publisher, player) -> true;
+            (publisher, player) -> true;
         playerRunningState.getPlayerForPlay(firstPlayer.getPlayerId(), winFunction);
 
         // Second player wins
@@ -469,14 +473,14 @@ class PlayerRunningStateTest {
         Player currentPlayer = playerRunningState.getCurrentPlayer();
 
         PlayerRunningState.BiFunctionChecked<ActionPublisher, Player, Boolean> throwingFunction =
-                (publisher, player) -> {
-                    throw new GameException("Test exception");
-                };
+            (publisher, player) -> {
+                throw new GameException("Test exception");
+            };
 
         // When & Then
         assertThrows(
-                GameException.class,
-                () -> playerRunningState.getPlayerForPlay(currentPlayer.getPlayerId(), throwingFunction)
+            GameException.class,
+            () -> playerRunningState.getPlayerForPlay(currentPlayer.getPlayerId(), throwingFunction)
         );
     }
 }

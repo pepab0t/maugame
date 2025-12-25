@@ -17,5 +17,5 @@ public class MauSettings implements GameSettings {
     private volatile int maxPlayers = 5;
 
     @Min(10)
-    private volatile long turnTimeoutMs = 10_000;
+    private volatile long turnTimeoutMs = 60_000;
 }

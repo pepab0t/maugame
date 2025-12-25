@@ -13,6 +13,8 @@ public class MauWebsocketApplication {
         SpringApplication.run(MauWebsocketApplication.class, args);
     }
 
+    // TODO bug no RUNNING state
+
     @Bean
     public CommandLineRunner commandLineRunner(MauSettings settings) {
         return _ -> log.info("started with settings: {}", settings);

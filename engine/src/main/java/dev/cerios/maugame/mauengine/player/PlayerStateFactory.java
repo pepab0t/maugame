@@ -1,8 +1,10 @@
 package dev.cerios.maugame.mauengine.player;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -10,6 +12,7 @@ import java.util.function.Consumer;
 
 @RequiredArgsConstructor
 public class PlayerStateFactory {
+    @Getter
     private final UUID gameId;
     private final int minPlayers;
     private final int maxPlayers;
@@ -17,34 +20,39 @@ public class PlayerStateFactory {
     private final ReadWriteLock globalLock;
     private final long turnTimeoutMs;
 
-    public PlayerRunningState createRunningState(Collection<Player> players, Consumer<Collection<Player>> stateSwitcher) {
+    public PlayerRunningState createRunningState(
+        Collection<Player> players,
+        Map<String, Integer> scores,
+        Consumer<Collection<Player>> stateSwitcher
+    ) {
         return new PlayerRunningState(
-                random,
-                players,
-                turnTimeoutMs,
-                stateSwitcher,
-                globalLock,
-                new ActionPublisherBuilder()
+            random,
+            players,
+            scores,
+            turnTimeoutMs,
+            stateSwitcher,
+            globalLock,
+            new ActionPublisherBuilder()
         );
     }
 
     public PlayerLobbyState createLobbyState(Consumer<Collection<Player>> stateSwitcher) {
         return new PlayerLobbyState(
-                minPlayers,
-                maxPlayers,
-                gameId,
-                stateSwitcher,
-                new ActionPublisherBuilder()
+            minPlayers,
+            maxPlayers,
+            gameId,
+            stateSwitcher,
+            new ActionPublisherBuilder()
         );
     }
 
     public PlayerFinishState createFinishState(Collection<Player> players, Consumer<Collection<Player>> stateSwitcher) {
         return new PlayerFinishState(
-                players,
-                minPlayers,
-                gameId,
-                new ActionPublisherBuilder(),
-                stateSwitcher
+            players,
+            minPlayers,
+            gameId,
+            new ActionPublisherBuilder(),
+            stateSwitcher
         );
     }
 }

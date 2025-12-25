@@ -5,6 +5,9 @@ import dev.cerios.maugame.mauengine.exception.CardException;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import static java.util.Collections.emptySet;
+import static java.util.Collections.shuffle;
+
 public class CardManager {
     private final Queue<Card> deck;
     private final Queue<Card> pile;
@@ -16,24 +19,35 @@ public class CardManager {
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
     public static CardManager create(Random random, CardComparer cardComparer) {
+        return new CardManager(emptySet(), random, cardComparer)
+            .shuffleRemaining();
+    }
+
+    static Set<Card> createCards() {
         Set<Card> cards = new HashSet<>();
         for (CardType type : CardType.values()) {
             for (Color color : Color.values()) {
                 cards.add(new Card(type, color));
             }
         }
-        return new CardManager(cards, random, cardComparer)
-                .shuffleRemaining();
+        return cards;
     }
 
     public CardManager(Collection<Card> cards, Random random, CardComparer cardComparer) {
-        if (cards.isEmpty())
-            throw new IllegalStateException("Cards must not be empty");
         this.deck = new LinkedList<>(cards);
         this.pile = new LinkedList<>();
         this.floatingCards = new HashMap<>();
         this.random = random;
         this.cardComparer = cardComparer;
+    }
+
+    public void refresh() {
+        this.deck.clear();
+        this.pile.clear();
+        this.floatingCards.clear();
+        this.deck.addAll(createCards());
+        cardComparer.clear();
+        shuffleRemaining();
     }
 
     public CardManager shuffleRemaining() {
@@ -43,7 +57,7 @@ public class CardManager {
             while (!deck.isEmpty()) {
                 cardList.add(deck.remove());
             }
-            Collections.shuffle(cardList, random);
+            shuffle(cardList, random);
             deck.addAll(cardList);
             return this;
         } finally {
@@ -59,7 +73,7 @@ public class CardManager {
         try {
             lock.writeLock().lock();
             if (deck.size() + pile.size() < n + 1) {
-                throw new CardException("Cannot draw " + n + " cards, only " + (deck.size() - 1) + " cards are available.");
+                throw new CardException("Cannot draw " + n + " cards, only " + (deck.size()) + " cards are available.");
             }
             List<Card> cardList = new ArrayList<>(n);
             for (int i = 0; i < n; i++) {

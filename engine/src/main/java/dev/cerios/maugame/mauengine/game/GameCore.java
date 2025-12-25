@@ -31,9 +31,9 @@ class GameCore {
     private final UUID id;
 
     GameCore(
-            CardManager cardManager,
-            PlayerContext playerContext,
-            UUID id
+        CardManager cardManager,
+        PlayerContext playerContext,
+        UUID id
     ) {
         this.cardManager = cardManager;
         this.playerContext = playerContext;
@@ -127,8 +127,8 @@ class GameCore {
                 var drawnCards = cardManager.draw(count);
                 player.getHand().addAll(drawnCards);
                 publisher.publishActionExcludingPlayer(
-                        new HiddenDrawAction(player, drawnCards.size()),
-                        player.getPlayerId()
+                    new HiddenDrawAction(player, drawnCards.size()),
+                    player.getPlayerId()
                 );
                 publisher.publishAction(player, new DrawAction(drawnCards));
             }
@@ -139,9 +139,10 @@ class GameCore {
         return false;
     }
 
-
     private void start(UUID gameId) {
         var players = playerContext.getPlayers();
+        gameEffect = null;
+        cardManager.refresh();
 
         for (Player player : players.getPlayers()) {
             List<Card> drawnCards;
@@ -153,7 +154,6 @@ class GameCore {
             player.getHand().addAll(drawnCards);
         }
         var pileCard = cardManager.startPile();
-
         var publisher = players.getActionPublisher();
 
         publisher.publishActionToAll(new StartAction(gameId.toString()));

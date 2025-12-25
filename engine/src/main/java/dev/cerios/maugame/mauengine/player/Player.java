@@ -47,6 +47,10 @@ public class Player implements GamePlayer {
         }
     }
 
+    void activate() {
+        finished = false;
+    }
+
     void trigger(Action action) {
         eventListener.accept(this, action);
     }
