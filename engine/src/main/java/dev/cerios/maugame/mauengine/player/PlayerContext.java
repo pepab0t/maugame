@@ -39,7 +39,9 @@ public class PlayerContext {
     public void setRunningState(Collection<Player> playerCollection) {
         if (players instanceof PlayerReadyStorage) {
             playerCollection.forEach(Player::activate);
-            var state = factory.createRunningState(playerCollection, scores, this::setFinishState);
+            var shuffledPlayers = new ArrayList<>(playerCollection);
+            Collections.shuffle(shuffledPlayers);
+            var state = factory.createRunningState(shuffledPlayers, scores, this::setFinishState);
             if (timeoutListener != null)
                 state.listenTimeout(timeoutListener);
             players = state;
