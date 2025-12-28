@@ -57,7 +57,7 @@ class PlayerFinishState extends PlayerReadyStorage {
         readyStates.remove(playerId);
         actionPublisher.publishActionToAll(new RemovePlayerAction(player));
 
-        if (players.size() <= minPlayers) {
+        if (players.size() < minPlayers) {
             destroy();
         } else {
             for (var ready : readyStates.values()) {
