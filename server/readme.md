@@ -87,6 +87,27 @@ and possible query parameters:
 }
 ```
 
+#### NPC adding and removing
+
+```json
+{
+  "requestType": "CONTROL",
+  "control": {
+    "controlType": "REGISTER_NPC"
+  }
+}
+```
+
+```json
+{
+  "requestType": "CONTROL",
+  "control": {
+    "controlType": "REMOVE_NPC",
+    "npcName": "Bayraktar"
+  }
+}
+```
+
 ## Messages
 
 ### type: __ACTION__

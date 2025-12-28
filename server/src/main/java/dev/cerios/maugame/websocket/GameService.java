@@ -5,6 +5,7 @@ import dev.cerios.maugame.mauengine.card.Color;
 import dev.cerios.maugame.mauengine.exception.GameException;
 import dev.cerios.maugame.mauengine.exception.MauEngineBaseException;
 import dev.cerios.maugame.mauengine.game.GamePlayer;
+import dev.cerios.maugame.mauengine.player.NpcPlayer;
 import dev.cerios.maugame.websocket.exception.LobbyAlreadyExistsException;
 import dev.cerios.maugame.websocket.exception.NotFoundException;
 import dev.cerios.maugame.websocket.message.ServerMessage;
@@ -73,13 +74,25 @@ public class GameService {
                 var playerId = player.getPlayerId();
                 var disconnectMessage = ServerMessage.ofDisconnect(player.getUsername());
                 for (var otherPlayer : game.getAllPlayers()) {
-                    if (otherPlayer.getPlayerId().equals(playerId)) {
+                    if (otherPlayer instanceof NpcPlayer || otherPlayer.getPlayerId().equals(playerId)) {
                         continue;
                     }
                     distributor.enqueueMessage(otherPlayer.getPlayerId(), disconnectMessage);
                 }
             }
         }
+    }
+
+    public void registerNpc(String playerId) throws NotFoundException, GameException {
+        var game = storage.getGame(playerId)
+            .orElseThrow(() -> new NotFoundException("Game not found for given player."));
+        game.addNpc(playerId);
+    }
+
+    public void removeNpc(String playerId, String npcId) throws NotFoundException, GameException {
+        var game = storage.getGame(playerId)
+            .orElseThrow(() -> new NotFoundException("Game not found for given player."));
+        game.removeNpc(playerId, npcId);
     }
 
     public void setPlayerReady(String playerId) throws NotFoundException, GameException {

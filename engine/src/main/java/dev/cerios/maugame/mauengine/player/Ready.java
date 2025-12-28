@@ -6,9 +6,9 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 class Ready {
-    private boolean ready = false;
+    protected boolean ready = false;
     @Getter
-    private final Player player;
+    protected final Player player;
 
     public boolean set(boolean ready) {
         var changed = ready != this.ready;
@@ -18,5 +18,17 @@ class Ready {
 
     public boolean get() {
         return ready;
+    }
+}
+
+class NpcReady extends Ready {
+
+    NpcReady(Player player) {
+        super(player);
+        this.ready = true;
+    }
+
+    public boolean set(boolean ready) {
+        return false;
     }
 }

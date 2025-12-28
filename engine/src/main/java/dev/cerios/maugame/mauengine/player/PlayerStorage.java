@@ -15,8 +15,4 @@ public interface PlayerStorage {
     Collection<Player> getPlayers();
 
     ActionPublisher getActionPublisher();
-
-    default ActionPublisher createActionPublisher(ActionPublisherBuilder builder) {
-        return builder.withPlayers(this::getPlayers).build();
-    }
 }

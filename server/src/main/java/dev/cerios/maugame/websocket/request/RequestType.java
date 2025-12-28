@@ -12,6 +12,8 @@ public enum RequestType {
 
     public enum ControlType {
         READY,
-        UNREADY
+        UNREADY,
+        REMOVE_NPC,
+        REGISTER_NPC
     }
 }

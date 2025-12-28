@@ -17,11 +17,14 @@ public class GameFactory {
     public Game createGame(Random random, int minPlayers, int maxPlayers, long turnTimeoutMs) {
         var gameId = UUID.randomUUID();
         var globalLock = new ReentrantReadWriteLock(true);
-        var factory = new PlayerStateFactory(gameId, minPlayers, maxPlayers, random, globalLock, turnTimeoutMs);
-        var playerContext = new PlayerContext(factory);
-        var core = new GameCore(CardManager.create(random, new CardComparer()), playerContext, gameId);
+        var playerStateFactory = new PlayerStateFactory(gameId, minPlayers, maxPlayers, random, globalLock, turnTimeoutMs);
+        var playerContext = new PlayerContext(playerStateFactory);
+        var cardManager = CardManager.create(random, new CardComparer());
+        var core = new GameCore(cardManager, playerContext, gameId);
         var game = new Game(gameId, core, playerContext, globalLock);
+        var autoPlayer = new AutoPlayHandler(cardManager, core, new Random());
         playerContext.setLobbyState();
+        playerContext.listenNpcTurn(autoPlayer::computeAutoPlay);
         return game;
     }
 

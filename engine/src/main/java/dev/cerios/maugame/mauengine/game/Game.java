@@ -83,7 +83,35 @@ public class Game {
         var l = lock.writeLock();
         try {
             l.lock();
-            return playerContext.getPlayers().registerPlayer(username, eventListener);
+            return playerContext.getLobby().registerPlayer(username, eventListener);
+        } finally {
+            l.unlock();
+        }
+    }
+
+    public void addNpc(String playerId) throws GameException {
+        var l = lock.writeLock();
+        try {
+            l.lock();
+            var lobby = playerContext.getLobby();
+            if (!lobby.isCreator(playerId)) {
+                throw new GameException("Player is not creator of lobby.");
+            }
+            lobby.registerNpcPlayer();
+        } finally {
+            l.unlock();
+        }
+    }
+
+    public void removeNpc(String playerId, String npcId) throws GameException {
+        var l = lock.writeLock();
+        try {
+            l.lock();
+            var lobby = playerContext.getLobby();
+            if (!lobby.isCreator(playerId)) {
+                throw new GameException("Player is not creator of lobby.");
+            }
+            lobby.removePlayer(npcId);
         } finally {
             l.unlock();
         }

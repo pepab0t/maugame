@@ -1,6 +1,7 @@
 package dev.cerios.maugame.mauengine.card;
 
 import dev.cerios.maugame.mauengine.exception.CardException;
+import lombok.Getter;
 
 import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -14,6 +15,7 @@ public class CardManager {
     private final Map<Card, Integer> floatingCards;
     private final Random random;
 
+    @Getter
     private final CardComparer cardComparer;
 
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();

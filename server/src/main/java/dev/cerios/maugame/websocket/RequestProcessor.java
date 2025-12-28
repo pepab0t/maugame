@@ -74,6 +74,16 @@ public class RequestProcessor {
         switch (controlType) {
             case READY -> gameService.setPlayerReady(playerId);
             case UNREADY -> gameService.setPlayerUnready(playerId);
+            case REGISTER_NPC -> gameService.registerNpc(playerId);
+            case REMOVE_NPC -> {
+                var npcName = Optional.ofNullable(node.get("npcName"))
+                    .map(JsonNode::asText)
+                    .orElse("");
+                if (npcName.isBlank()) {
+                    throw new InvalidCommandException("Missing field: npcName (string)");
+                }
+                gameService.removeNpc(playerId, node.get("npcName").asText());
+            }
             default -> throw new InvalidCommandException("Invalid control type");
         }
     }

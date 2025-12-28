@@ -31,11 +31,7 @@ public class Player implements GamePlayer {
     @Getter(AccessLevel.PACKAGE)
     private final GameEventListener eventListener;
 
-    public Player(String playerId, String username, GameEventListener eventListener) {
-        this(playerId, username, eventListener, () -> {});
-    }
-
-    Player(String playerId, String username, GameEventListener eventListener, Runnable countDown) {
+    Player(String playerId, String username, GameEventListener eventListener) {
         this.playerId = playerId;
         this.eventListener = eventListener;
         this.username = username;

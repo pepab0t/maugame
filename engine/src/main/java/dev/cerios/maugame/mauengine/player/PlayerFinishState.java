@@ -33,14 +33,21 @@ class PlayerFinishState extends PlayerReadyStorage {
     PlayerFinishState(Collection<Player> players, int minPlayers, UUID gameId, ActionPublisherBuilder builder, Consumer<Collection<Player>> stateSwitcher) {
         for (Player player : players) {
             this.players.put(player.getPlayerId(), player);
-            this.readyStates.put(player.getPlayerId(), new Ready(player));
         }
-        this.actionPublisher = createActionPublisher(builder);
+        this.actionPublisher = builder.withPlayers(this.players::valueList).build();
         this.minPlayers = minPlayers;
         this.gameId = gameId;
         this.stateSwitcher = stateSwitcher;
         if (players.size() < minPlayers) {
             destroy();
+        }
+        for (var player : players) {
+            if (player instanceof NpcPlayer) {
+                this.readyStates.put(player.getPlayerId(), new NpcReady(player));
+                this.actionPublisher.publishActionToAll(new ReadyAction(player.getUsername()));
+            } else {
+                this.readyStates.put(player.getPlayerId(), new Ready(player));
+            }
         }
     }
 

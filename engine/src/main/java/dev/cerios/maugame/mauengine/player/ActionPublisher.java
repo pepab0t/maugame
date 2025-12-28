@@ -28,7 +28,7 @@ class ActionPublisherImpl implements ActionPublisher {
         Action action,
         Predicate<Player> playerPredicate
     ) {
-        var s = players.get().stream();
+        var s = players.get().stream().filter(p -> !(p instanceof NpcPlayer));
         if (playerPredicate != null)
             s = s.filter(playerPredicate);
         s.forEach(player -> player.trigger(action));

@@ -1,6 +1,9 @@
 package dev.cerios.maugame.mauengine.card;
 
+import lombok.Setter;
+
 public class CardComparer {
+    @Setter
     private volatile Color nextColor;
 
     public boolean compare(Card pileCard, Card newCard) {
@@ -9,10 +12,6 @@ public class CardComparer {
         if (nextColor != null)
             return newCard.color() == nextColor;
         return pileCard.color() == newCard.color() || pileCard.type() == newCard.type();
-    }
-
-    public void setNextColor(Color nextColor) {
-        this.nextColor = nextColor;
     }
 
     public void clear() {

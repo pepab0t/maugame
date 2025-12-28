@@ -5,6 +5,7 @@ import dev.cerios.maugame.mauengine.game.GameEventListener;
 import dev.cerios.maugame.mauengine.game.action.*;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.iterators.LoopingIterator;
 import org.apache.commons.collections4.map.ListOrderedMap;
 
 import java.util.*;
@@ -12,20 +13,20 @@ import java.util.function.Consumer;
 
 @Slf4j
 public class PlayerLobbyState extends PlayerReadyStorage {
-    private final int minPlayers;
-    private final int maxPlayers;
+    private final Iterator<String> NPC_NAMES = new LoopingIterator<>(List.of("Bayraktar", "Baykar", "Baklajuan", "Babakar", "Brumbalek"));
 
     private final ListOrderedMap<String, Player> players = new ListOrderedMap<>();
     private final Set<String> usernames = new HashSet<>();
     @Getter
     private final Map<String, Ready> readyStates = new HashMap<>();
+    private final List<Consumer<UUID>> startListeners = new LinkedList<>();
 
+    private final int minPlayers;
+    private final int maxPlayers;
     private final UUID gameId;
     @Getter
     private final ActionPublisher actionPublisher;
     private final Consumer<Collection<Player>> stateSwitcher;
-
-    private final List<Consumer<UUID>> startListeners = new LinkedList<>();
 
     PlayerLobbyState(UUID gameId, Consumer<Collection<Player>> stateSwitcher, ActionPublisherBuilder publisherBuilder) {
         this(2, 5, gameId, stateSwitcher, publisherBuilder);
@@ -40,7 +41,7 @@ public class PlayerLobbyState extends PlayerReadyStorage {
     ) {
         this.minPlayers = minPlayers;
         this.maxPlayers = maxPlayers;
-        this.actionPublisher = createActionPublisher(builder);
+        this.actionPublisher = builder.withPlayers(players::valueList).build();
         this.gameId = gameId;
         this.stateSwitcher = stateSwitcher;
     }
@@ -65,7 +66,39 @@ public class PlayerLobbyState extends PlayerReadyStorage {
         for (var r : readyStates.values()) {
             if (r.set(false)) actionPublisher.publishActionExcludingPlayer(new UnreadyAction(r.getPlayer().getUsername()), playerId);
         }
+        for (var p : players.values()) {
+            if (p instanceof NpcPlayer)
+                actionPublisher.publishAction(player, new ReadyAction(p.getUsername()));
+        }
         return player;
+    }
+
+    public boolean isCreator(String playerId) {
+        return Optional.ofNullable(players.get(players.firstKey()))
+            .map(creator -> creator.getPlayerId().equals(playerId))
+            .orElse(false);
+    }
+
+    public void registerNpcPlayer() throws GameException {
+        if (players.size() >= maxPlayers) {
+            throw new GameException("Too many players");
+        }
+        var username = NPC_NAMES.next();
+        if (usernames.contains(username))
+            throw new GameException("Username `" + username + "` is given");
+
+        var npc = new NpcPlayer(username, username);
+        var playerId = npc.getPlayerId();
+
+        usernames.add(username);
+        players.put(playerId, npc);
+        readyStates.put(playerId, new NpcReady(npc));
+
+        actionPublisher.publishActionToAll(new RegisterAction(gameId, npc, false));
+        for (var r : readyStates.values()) {
+            if (r.set(false)) actionPublisher.publishActionToAll(new UnreadyAction(r.getPlayer().getUsername()));
+        }
+        actionPublisher.publishActionToAll(new ReadyAction(npc.getUsername()));
     }
 
     @Override

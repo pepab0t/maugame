@@ -68,7 +68,7 @@ class GameCore {
 
         if (gameEffect == null) {
             if (!cardManager.playCard(card, nextColor))
-                throw new PlayerMoveException("Illegal card to play");
+                throw new PlayerMoveException("Illegal card to play %s.".formatted(card));
             switch (card.type()) {
                 case ACE -> gameEffect = new SkipEffect();
                 case SEVEN -> gameEffect = new DrawEffect(2);
@@ -78,17 +78,17 @@ class GameCore {
             switch (gameEffect) {
                 case DrawEffect(int count) -> {
                     if (card.type() != CardType.SEVEN)
-                        throw new PlayerMoveException("Illegal card to play.");
+                        throw new PlayerMoveException("Illegal card to play %s.".formatted(card));
                     if (!cardManager.playCard(card, null))
-                        throw new PlayerMoveException("Illegal card to play.");
+                        throw new PlayerMoveException("Illegal card to play %s.".formatted(card));
                     gameEffect = new DrawEffect(count + 2);
                     actions.add(new PlayCardAction(player, card));
                 }
                 case SkipEffect ignore -> {
                     if (card.type() != CardType.ACE)
-                        throw new PlayerMoveException("Illegal card to play.");
+                        throw new PlayerMoveException("Illegal card to play %s.".formatted(card));
                     if (!cardManager.playCard(card, null))
-                        throw new PlayerMoveException("Illegal card to play.");
+                        throw new PlayerMoveException("Illegal card to play %s.".formatted(card));
                     actions.add(new PlayCardAction(player, card));
                 }
             }

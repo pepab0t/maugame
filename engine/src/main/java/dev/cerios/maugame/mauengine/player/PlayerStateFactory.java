@@ -23,7 +23,8 @@ public class PlayerStateFactory {
     public PlayerRunningState createRunningState(
         Collection<Player> players,
         Map<String, Integer> scores,
-        Consumer<Collection<Player>> stateSwitcher
+        Consumer<Collection<Player>> stateSwitcher,
+        Consumer<NpcPlayer> npcListener
     ) {
         return new PlayerRunningState(
             random,
@@ -32,7 +33,8 @@ public class PlayerStateFactory {
             turnTimeoutMs,
             stateSwitcher,
             globalLock,
-            new ActionPublisherBuilder()
+            new ActionPublisherBuilder(),
+            npcListener
         );
     }
 

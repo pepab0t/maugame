@@ -25,7 +25,7 @@ public class PlayerRunningState implements PlayerStorage {
 
     private final ListOrderedMap<String, Player> players = new ListOrderedMap<>();
     private int nextIndex;
-    private int scorePoints = 3;
+    private int scorePoints;
     private final List<String> playerRank = new LinkedList<>();
     private final Consumer<Collection<Player>> stateSwitcher;
 
@@ -43,6 +43,7 @@ public class PlayerRunningState implements PlayerStorage {
     private final Map<String, Integer> scores;
 
     private final List<Consumer<Player>> timeoutListeners = new LinkedList<>();
+    private final Consumer<NpcPlayer> npcListener;
 
     PlayerRunningState(
         Random random,
@@ -51,7 +52,8 @@ public class PlayerRunningState implements PlayerStorage {
         long turnTimeoutMs,
         Consumer<Collection<Player>> stateSwitcher,
         ReadWriteLock globalLock,
-        ActionPublisherBuilder builder
+        ActionPublisherBuilder builder,
+        Consumer<NpcPlayer> npcListener
     ) {
         this(
             random,
@@ -61,7 +63,8 @@ public class PlayerRunningState implements PlayerStorage {
             stateSwitcher,
             globalLock,
             builder,
-            Executors.newScheduledThreadPool(1, Thread.ofVirtual().factory())
+            Executors.newScheduledThreadPool(1, Thread.ofVirtual().factory()),
+            npcListener
         );
     }
 
@@ -73,14 +76,16 @@ public class PlayerRunningState implements PlayerStorage {
         Consumer<Collection<Player>> stateSwitcher,
         ReadWriteLock globalLock,
         ActionPublisherBuilder builder,
-        ScheduledExecutorService executor
+        ScheduledExecutorService executor,
+        Consumer<NpcPlayer> npcListener
     ) {
         this.random = random;
-        this.actionPublisher = createActionPublisher(builder);
+        this.actionPublisher = builder.withPlayers(players::valueList).build();
         this.turnTimeoutMs = turnTimeoutMs;
         this.stateSwitcher = stateSwitcher;
         this.globalLock = globalLock;
         this.scores = scores;
+        this.scorePoints = playerCollection.size() - 1;
 
         this.players.putAll(
             playerCollection.stream()
@@ -88,7 +93,7 @@ public class PlayerRunningState implements PlayerStorage {
         );
         this.activeCounter = new AtomicInteger(this.players.size());
         this.executor = executor;
-        initializePlayer();
+        this.npcListener = npcListener;
     }
 
     record FutureWithTimeout(Future<?> future, long expireAtMs) {
@@ -198,7 +203,7 @@ public class PlayerRunningState implements PlayerStorage {
         return 0;
     }
 
-    private void initializePlayer() {
+    void initializePlayer() {
         nextIndex = random.nextInt(players.size());
         shiftPlayer();
     }
@@ -210,6 +215,10 @@ public class PlayerRunningState implements PlayerStorage {
         futures.put(currentPlayer.getPlayerId(), new FutureWithTimeout(timeoutFuture, expireTime));
         var action = new PlayerShiftAction(currentPlayer, expireTime);
         actionPublisher.publishActionToAll(action);
+
+        if (currentPlayer instanceof NpcPlayer npc) {
+            npcListener.accept(npc);
+        }
     }
 
     private void timeoutPlayer(Player player) {
