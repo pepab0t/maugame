@@ -107,7 +107,7 @@ public class PlayerLobbyState extends PlayerReadyStorage {
         if (player == null)
             return;
 
-        usernames.remove(playerId);
+        usernames.remove(player.getUsername());
         readyStates.remove(playerId);
 
         for (var ready : readyStates.values()) {
