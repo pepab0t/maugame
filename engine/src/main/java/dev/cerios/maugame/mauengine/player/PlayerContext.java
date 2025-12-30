@@ -40,6 +40,12 @@ public class PlayerContext {
         throw new GameException("Not in lobby state.");
     }
 
+    public PlayerRunningState getRunning() throws GameException {
+        if (players instanceof PlayerRunningState)
+            return (PlayerRunningState) players;
+        throw new GameException("Not in running state.");
+    }
+
     public void setLobbyState() {
         var state = factory.createLobbyState(this::setRunningState);
         state.listenStart(startListeners);

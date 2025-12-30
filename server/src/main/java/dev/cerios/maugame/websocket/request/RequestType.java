@@ -14,6 +14,6 @@ public enum RequestType {
         READY,
         UNREADY,
         REMOVE_NPC,
-        REGISTER_NPC
+        CHEAT_END, REGISTER_NPC
     }
 }

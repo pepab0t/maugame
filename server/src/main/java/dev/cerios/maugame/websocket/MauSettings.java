@@ -18,4 +18,6 @@ public class MauSettings implements GameSettings {
 
     @Min(10)
     private volatile long turnTimeoutMs = 60_000;
+
+    private volatile boolean cheatingEnabled = false;
 }

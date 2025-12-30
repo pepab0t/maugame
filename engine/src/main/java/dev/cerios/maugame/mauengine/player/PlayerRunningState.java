@@ -154,6 +154,20 @@ public class PlayerRunningState implements PlayerStorage {
         timeoutListeners.add(listener);
     }
 
+    public void endInstantly() {
+        players.valueList().stream()
+            .filter(p -> !p.isFinished())
+            .forEach(p -> {
+                playerRank.add(p.getUsername());
+                addScore(p.getUsername());
+                poke(p.getPlayerId());
+                p.deactivate();
+            });
+        activeCounter.set(0);
+        actionPublisher.publishActionToAll(new EndAction(getPlayerRank(), provideScoresCopy()));
+        stateSwitcher.accept(getPlayers());
+    }
+
     /**
      * Make player a winner and deactivates him.
      *

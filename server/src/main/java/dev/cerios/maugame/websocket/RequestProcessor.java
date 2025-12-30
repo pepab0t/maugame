@@ -27,6 +27,7 @@ public class RequestProcessor {
     private final GameService gameService;
     private final Validator validator;
     private final MessageDistributor distributor;
+    private final MauSettings settings;
 
     public void process(String sessionId, String request) throws MauTimeoutException {
         log.trace("processing request for session {}", sessionId);
@@ -83,6 +84,13 @@ public class RequestProcessor {
                     throw new InvalidCommandException("Missing field: npcName (string)");
                 }
                 gameService.removeNpc(playerId, node.get("npcName").asText());
+            }
+            case CHEAT_END -> {
+                if (settings.isCheatingEnabled()) {
+                    gameService.endInstantly(playerId);
+                } else {
+                    throw new InvalidCommandException("Cheating is disabled");
+                }
             }
             default -> throw new InvalidCommandException("Invalid control type");
         }

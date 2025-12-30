@@ -126,6 +126,12 @@ public class GameService {
         game.playPassMove(playerId);
     }
 
+    public void endInstantly(String playerId) throws GameException, NotFoundException {
+        var game = storage.getGame(playerId)
+            .orElseThrow(() -> new NotFoundException("No game for this player."));
+        game.endInstantly();
+    }
+
     private void logPlayerAssignment(GamePlayer player, WebSocketSession session) {
         log.info("player `{}` assigned to session `{}`", player, session.getId());
     }

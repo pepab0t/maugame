@@ -199,6 +199,16 @@ public class Game {
         return gameId;
     }
 
+    public void endInstantly() throws GameException {
+        var l = lock.writeLock();
+        try {
+            l.lock();
+            playerContext.getRunning().endInstantly();
+        } finally {
+            l.unlock();
+        }
+    }
+
     public void sendCurrentStateTo(String playerId, Predicate<GamePlayer> playerMatcher) throws GameException {
         var l = lock.readLock();
         try {

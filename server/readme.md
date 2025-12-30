@@ -108,6 +108,17 @@ and possible query parameters:
 }
 ```
 
+#### Cheat End Game Instantly
+
+```json
+{
+  "requestType": "CONTROL",
+  "control": {
+    "controlType": "CHEAT_END"
+  }
+}
+```
+
 ## Messages
 
 ### type: __ACTION__
