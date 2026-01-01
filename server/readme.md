@@ -108,7 +108,7 @@ and possible query parameters:
 }
 ```
 
-#### Cheat End Game Instantly
+#### Cheat End Game Instantly (MAU_CHEATING_ENABLED=true)
 
 ```json
 {
