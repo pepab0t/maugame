@@ -13,7 +13,7 @@ public enum RequestType {
     public enum ControlType {
         READY,
         UNREADY,
-        REMOVE_NPC,
+        KICK,
         CHEAT_END, REGISTER_NPC
     }
 }

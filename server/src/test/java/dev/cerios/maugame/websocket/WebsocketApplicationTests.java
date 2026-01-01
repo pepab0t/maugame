@@ -1,6 +1,6 @@
 package dev.cerios.maugame.websocket;
 
-import dev.cerios.maugame.mauengine.player.Player;
+import dev.cerios.maugame.mauengine.player.PlayerFactory;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -27,15 +27,15 @@ class WebsocketApplicationTests {
     @Test
     void testParseRequest() {
         String json = """
-                {
-                    "requestType": "MOVE",
-                    "move": {
-                        "moveType": "PLAY"
-                    }
+            {
+                "requestType": "MOVE",
+                "move": {
+                    "moveType": "PLAY"
                 }
-                """;
+            }
+            """;
         var session = mock(StandardWebSocketSession.class);
-        when(storage.getPlayer(any())).thenReturn(new Player("123", "user1", (p, e) -> {}));
+        when(storage.getPlayer(any())).thenReturn(PlayerFactory.createPlayer("user1", (_, _) -> {}));
         when(session.getId()).thenReturn("session1");
 
         requestProcessor.process(session.getId(), json);

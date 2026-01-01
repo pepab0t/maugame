@@ -99,10 +99,11 @@ public class MessageDistributor {
                 new TextMessage(objectMapper.writeValueAsString(Message.createActionMessage(dto)))
             );
 
-            if (a.getType() == Action.ActionType.DISQUALIFIED)
-                storage.removePlayerById(playerId);
-            if (a.getType() == Action.ActionType.DESTROY)
-                storage.removePlayerById(playerId);
+            switch (a.getType()) {
+                case DISQUALIFIED, DESTROY -> storage.removePlayerById(playerId);
+                default -> {
+                }
+            }
 
         } catch (JsonProcessingException e) {
             log.info("error during serialization", e);
@@ -143,6 +144,7 @@ public class MessageDistributor {
             case ReadyAction a -> actionMapper.toDto(a);
             case UnreadyAction a -> actionMapper.toDto(a);
             case DestroyAction a -> actionMapper.toDto(a);
+            case LeaderAction a -> actionMapper.toDto(a);
             default -> throw new IllegalStateException("Unexpected value: " + action);
         };
     }

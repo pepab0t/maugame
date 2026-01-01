@@ -76,14 +76,14 @@ public class RequestProcessor {
             case READY -> gameService.setPlayerReady(playerId);
             case UNREADY -> gameService.setPlayerUnready(playerId);
             case REGISTER_NPC -> gameService.registerNpc(playerId);
-            case REMOVE_NPC -> {
-                var npcName = Optional.ofNullable(node.get("npcName"))
+            case KICK -> {
+                var username = Optional.ofNullable(node.get("username"))
                     .map(JsonNode::asText)
                     .orElse("");
-                if (npcName.isBlank()) {
-                    throw new InvalidCommandException("Missing field: npcName (string)");
+                if (username.isBlank()) {
+                    throw new InvalidCommandException("Missing field: username (string)");
                 }
-                gameService.removeNpc(playerId, node.get("npcName").asText());
+                gameService.kickPlayer(playerId, username);
             }
             case CHEAT_END -> {
                 if (settings.isCheatingEnabled()) {

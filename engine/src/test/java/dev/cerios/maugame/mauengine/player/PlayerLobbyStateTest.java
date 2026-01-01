@@ -69,7 +69,7 @@ class PlayerLobbyStateTest {
         String playerId = "player123";
 
         try (MockedStatic<PlayerIdGenerator> mockedGenerator = mockStatic(PlayerIdGenerator.class)) {
-            mockedGenerator.when(PlayerIdGenerator::generatePlayerId).thenReturn(playerId);
+            mockedGenerator.when(PlayerIdGenerator::generate).thenReturn(playerId);
 
             // When
             Player result = playerLobbyState.registerPlayer(username, eventListener1);
@@ -96,16 +96,16 @@ class PlayerLobbyStateTest {
         String playerId2 = "player2";
 
         try (MockedStatic<PlayerIdGenerator> mockedGenerator = mockStatic(PlayerIdGenerator.class)) {
-            mockedGenerator.when(PlayerIdGenerator::generatePlayerId)
-                    .thenReturn(playerId1)
-                    .thenReturn(playerId2);
+            mockedGenerator.when(PlayerIdGenerator::generate)
+                .thenReturn(playerId1)
+                .thenReturn(playerId2);
 
             playerLobbyState.registerPlayer(username, eventListener1);
 
             // When & Then
             GameException exception = assertThrows(
-                    GameException.class,
-                    () -> playerLobbyState.registerPlayer(username, eventListener2)
+                GameException.class,
+                () -> playerLobbyState.registerPlayer(username, eventListener2)
             );
 
             assertEquals("Username `" + username + "` is given", exception.getMessage());
@@ -120,9 +120,9 @@ class PlayerLobbyStateTest {
         String playerId2 = "player2";
 
         try (MockedStatic<PlayerIdGenerator> mockedGenerator = mockStatic(PlayerIdGenerator.class)) {
-            mockedGenerator.when(PlayerIdGenerator::generatePlayerId)
-                    .thenReturn(playerId1)
-                    .thenReturn(playerId2);
+            mockedGenerator.when(PlayerIdGenerator::generate)
+                .thenReturn(playerId1)
+                .thenReturn(playerId2);
 
             Player player1 = playerLobbyState.registerPlayer("user1", eventListener1);
             playerLobbyState.setReady(playerId1);
@@ -142,7 +142,7 @@ class PlayerLobbyStateTest {
         String playerId = "player123";
 
         try (MockedStatic<PlayerIdGenerator> mockedGenerator = mockStatic(PlayerIdGenerator.class)) {
-            mockedGenerator.when(PlayerIdGenerator::generatePlayerId).thenReturn(playerId);
+            mockedGenerator.when(PlayerIdGenerator::generate).thenReturn(playerId);
 
             playerLobbyState.registerPlayer("testUser", eventListener1);
             assertEquals(1, playerLobbyState.getPlayers().size());
@@ -169,9 +169,9 @@ class PlayerLobbyStateTest {
         String playerId2 = "player2";
 
         try (MockedStatic<PlayerIdGenerator> mockedGenerator = mockStatic(PlayerIdGenerator.class)) {
-            mockedGenerator.when(PlayerIdGenerator::generatePlayerId)
-                    .thenReturn(playerId1)
-                    .thenReturn(playerId2);
+            mockedGenerator.when(PlayerIdGenerator::generate)
+                .thenReturn(playerId1)
+                .thenReturn(playerId2);
 
             playerLobbyState.registerPlayer("user1", eventListener1);
             playerLobbyState.registerPlayer("user2", eventListener2);
@@ -193,7 +193,7 @@ class PlayerLobbyStateTest {
         String playerId = "player123";
 
         try (MockedStatic<PlayerIdGenerator> mockedGenerator = mockStatic(PlayerIdGenerator.class)) {
-            mockedGenerator.when(PlayerIdGenerator::generatePlayerId).thenReturn(playerId);
+            mockedGenerator.when(PlayerIdGenerator::generate).thenReturn(playerId);
 
             Player registered = playerLobbyState.registerPlayer("testUser", eventListener1);
 
@@ -210,8 +210,8 @@ class PlayerLobbyStateTest {
     void getPlayer_ShouldThrowExceptionForNonExistentPlayer() {
         // When & Then
         GameException exception = assertThrows(
-                GameException.class,
-                () -> playerLobbyState.getPlayer("nonExistentPlayer")
+            GameException.class,
+            () -> playerLobbyState.getPlayer("nonExistentPlayer")
         );
 
         assertEquals("Player `nonExistentPlayer` not found", exception.getMessage());
@@ -224,9 +224,9 @@ class PlayerLobbyStateTest {
         String playerId2 = "player2";
 
         try (MockedStatic<PlayerIdGenerator> mockedGenerator = mockStatic(PlayerIdGenerator.class)) {
-            mockedGenerator.when(PlayerIdGenerator::generatePlayerId)
-                    .thenReturn(playerId1)
-                    .thenReturn(playerId2);
+            mockedGenerator.when(PlayerIdGenerator::generate)
+                .thenReturn(playerId1)
+                .thenReturn(playerId2);
 
             Player player1 = playerLobbyState.registerPlayer("user1", eventListener1);
             Player player2 = playerLobbyState.registerPlayer("user2", eventListener2);
@@ -247,7 +247,7 @@ class PlayerLobbyStateTest {
         String playerId = "player123";
 
         try (MockedStatic<PlayerIdGenerator> mockedGenerator = mockStatic(PlayerIdGenerator.class)) {
-            mockedGenerator.when(PlayerIdGenerator::generatePlayerId).thenReturn(playerId);
+            mockedGenerator.when(PlayerIdGenerator::generate).thenReturn(playerId);
 
             Player player = playerLobbyState.registerPlayer("testUser", eventListener1);
             reset(actionPublisher);
@@ -265,8 +265,8 @@ class PlayerLobbyStateTest {
     void setReady_ShouldThrowExceptionForNonExistentPlayer() {
         // When & Then
         GameException exception = assertThrows(
-                GameException.class,
-                () -> playerLobbyState.setReady("nonExistentPlayer")
+            GameException.class,
+            () -> playerLobbyState.setReady("nonExistentPlayer")
         );
 
         assertEquals("Player `nonExistentPlayer` not found", exception.getMessage());
@@ -279,9 +279,9 @@ class PlayerLobbyStateTest {
         String playerId2 = "player2";
 
         try (MockedStatic<PlayerIdGenerator> mockedGenerator = mockStatic(PlayerIdGenerator.class)) {
-            mockedGenerator.when(PlayerIdGenerator::generatePlayerId)
-                    .thenReturn(playerId1)
-                    .thenReturn(playerId2);
+            mockedGenerator.when(PlayerIdGenerator::generate)
+                .thenReturn(playerId1)
+                .thenReturn(playerId2);
 
             playerLobbyState.registerPlayer("user1", eventListener1);
             playerLobbyState.registerPlayer("user2", eventListener2);
@@ -303,7 +303,7 @@ class PlayerLobbyStateTest {
         String playerId = "player123";
 
         try (MockedStatic<PlayerIdGenerator> mockedGenerator = mockStatic(PlayerIdGenerator.class)) {
-            mockedGenerator.when(PlayerIdGenerator::generatePlayerId).thenReturn(playerId);
+            mockedGenerator.when(PlayerIdGenerator::generate).thenReturn(playerId);
 
             playerLobbyState.registerPlayer("testUser", eventListener1);
 
@@ -323,10 +323,10 @@ class PlayerLobbyStateTest {
         String playerId3 = "player3";
 
         try (MockedStatic<PlayerIdGenerator> mockedGenerator = mockStatic(PlayerIdGenerator.class)) {
-            mockedGenerator.when(PlayerIdGenerator::generatePlayerId)
-                    .thenReturn(playerId1)
-                    .thenReturn(playerId2)
-                    .thenReturn(playerId3);
+            mockedGenerator.when(PlayerIdGenerator::generate)
+                .thenReturn(playerId1)
+                .thenReturn(playerId2)
+                .thenReturn(playerId3);
 
             playerLobbyState.registerPlayer("user1", eventListener1);
             playerLobbyState.registerPlayer("user2", eventListener2);
@@ -348,7 +348,7 @@ class PlayerLobbyStateTest {
         String playerId = "player123";
 
         try (MockedStatic<PlayerIdGenerator> mockedGenerator = mockStatic(PlayerIdGenerator.class)) {
-            mockedGenerator.when(PlayerIdGenerator::generatePlayerId).thenReturn(playerId);
+            mockedGenerator.when(PlayerIdGenerator::generate).thenReturn(playerId);
 
             playerLobbyState.registerPlayer("testUser", eventListener1);
 

@@ -55,23 +55,23 @@ public class IntegrationGameTest {
 
     @Test
     void whenGameStarts_thenShouldReceiveActionsInCorrectOrder() throws IOException {
-        Predicate<String> messageMatcher = m -> true;
+        Predicate<String> messageMatcher = _ -> true;
         // given
         var client1 = new TestClient(
-                TestClient.createConnectionUri(port, "user1"),
-                messageMatcher,
-                TIMEOUT_MS
+            TestClient.createConnectionUri(port, "user1"),
+            messageMatcher,
+            TIMEOUT_MS
         );
         var client2 = new TestClient(
-                TestClient.createConnectionUri(port, "user2"),
-                messageMatcher,
-                TIMEOUT_MS
+            TestClient.createConnectionUri(port, "user2"),
+            messageMatcher,
+            TIMEOUT_MS
         );
 
         try (var session1 = client1.handshakeWithCatch().join();
              var session2 = client2.handshakeWithCatch().join()) {
-            client1.get(2);
-            client2.get();
+            client1.get(3);
+            client2.get(2);
 
             session1.sendMessage(new TextMessage(createReadyRequest()));
             session2.sendMessage(new TextMessage(createReadyRequest()));
@@ -132,9 +132,9 @@ public class IntegrationGameTest {
             var disconnect3 = client3.get();
 
             new TestClient(
-                    String.format("ws://localhost:%d/game?user=%s&player=%s", port, "user1", playerId1),
-                    messageMatcher,
-                    TIMEOUT_MS
+                String.format("ws://localhost:%d/game?user=%s&player=%s", port, "user1", playerId1),
+                messageMatcher,
+                TIMEOUT_MS
             ).handshakeWithCatch().join();
 
             var reconnect2 = client2.get();
@@ -142,23 +142,23 @@ public class IntegrationGameTest {
 
             // then
             var expectedDisconnect = """
-                    {
-                        "messageType": "SERVER_MESSAGE",
-                        "body": {
-                            "bodyType": "DISCONNECT",
-                            "username": "user1"
-                        }
+                {
+                    "messageType": "SERVER_MESSAGE",
+                    "body": {
+                        "bodyType": "DISCONNECT",
+                        "username": "user1"
                     }
-                    """;
+                }
+                """;
             var expectedReconnect = """
-                    {
-                        "messageType": "SERVER_MESSAGE",
-                        "body": {
-                            "bodyType": "RECONNECT",
-                            "username": "user1"
-                        }
+                {
+                    "messageType": "SERVER_MESSAGE",
+                    "body": {
+                        "bodyType": "RECONNECT",
+                        "username": "user1"
                     }
-                    """;
+                }
+                """;
             JSONAssert.assertEquals(expectedDisconnect, disconnect2, JSONCompareMode.STRICT);
             JSONAssert.assertEquals(expectedDisconnect, disconnect3, JSONCompareMode.STRICT);
             JSONAssert.assertEquals(expectedReconnect, reconnect2, JSONCompareMode.STRICT);
@@ -178,10 +178,10 @@ public class IntegrationGameTest {
     @Test
     public void whenPlayerReconnects_thenShouldReceiveMultipleActions() {
         Predicate<String> messageMatcher = m -> m.contains("READY") ||
-                m.contains("DISCONNECT") ||
-                m.contains("RECONNECT") ||
-                m.contains("START_GAME") ||
-                m.contains("playerId");
+            m.contains("DISCONNECT") ||
+            m.contains("RECONNECT") ||
+            m.contains("START_GAME") ||
+            m.contains("playerId");
         var client1 = new TestClient(TestClient.createConnectionUri(port, "user1"), messageMatcher, TIMEOUT_MS);
         var client2 = new TestClient(TestClient.createConnectionUri(port, "user2"), messageMatcher, TIMEOUT_MS);
         var client3 = new TestClient(TestClient.createConnectionUri(port, "user3"), messageMatcher, TIMEOUT_MS);
@@ -217,9 +217,9 @@ public class IntegrationGameTest {
             client3.get();
 
             var clientReconnect = new TestClient(
-                    String.format("ws://localhost:%d/game?user=%s&player=%s", port, "user1", playerId1),
-                    m -> m.contains("ACTION"),
-                    TIMEOUT_MS
+                String.format("ws://localhost:%d/game?user=%s&player=%s", port, "user1", playerId1),
+                m -> m.contains("ACTION"),
+                TIMEOUT_MS
             );
             sessionReconnect = clientReconnect.handshake().join();
             var reconnectedMessages = clientReconnect.get(7);
@@ -235,7 +235,7 @@ public class IntegrationGameTest {
             assertThat(JsonPath.<String>read(reconnectedMessages.get(6), "$.action.type")).isEqualTo("PLAYER_RANK");
         } finally {
             var it = Stream.of(session1, session2, session3, sessionReconnect)
-                    .filter(Objects::nonNull).iterator();
+                .filter(Objects::nonNull).iterator();
             while (it.hasNext()) {
                 it.next().close();
             }

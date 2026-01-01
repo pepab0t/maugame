@@ -23,6 +23,7 @@ public interface Action {
         DISQUALIFIED,
         READY,
         UNREADY,
-        DESTROY
+        DESTROY,
+        LEADER
     }
 }

@@ -102,8 +102,8 @@ and possible query parameters:
 {
   "requestType": "CONTROL",
   "control": {
-    "controlType": "REMOVE_NPC",
-    "npcName": "Bayraktar"
+    "controlType": "KICK",
+    "username": "Bayraktar"
   }
 }
 ```
