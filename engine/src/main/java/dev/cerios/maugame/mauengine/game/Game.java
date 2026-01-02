@@ -94,8 +94,8 @@ public class Game {
         try {
             l.lock();
             var lobby = playerContext.getLobby();
-            if (!lobby.isCreator(playerId)) {
-                throw new GameException("Player is not creator of lobby.");
+            if (!lobby.isLeader(playerId)) {
+                throw new GameException("Player is not leader of lobby.");
             }
             lobby.registerNpcPlayer();
         } finally {
@@ -103,15 +103,12 @@ public class Game {
         }
     }
 
-    public void removeNpc(String playerId, String npcId) throws GameException {
+    public void kickPlayer(String playerId, String npcName) throws GameException {
         var l = lock.writeLock();
         try {
             l.lock();
             var lobby = playerContext.getLobby();
-            if (!lobby.isCreator(playerId)) {
-                throw new GameException("Player is not creator of lobby.");
-            }
-            lobby.removePlayer(npcId);
+            lobby.kickPlayer(playerId, npcName);
         } finally {
             l.unlock();
         }

@@ -77,10 +77,10 @@ class IntegrationLobbyTest {
         WebSocketSession session2 = null;
         try {
             session1 = client.handshake().join();
-            messages1 = client.get(2);
+            messages1 = client.get(3);
             session2 = client2.handshake().join();
             messages1.addAll(client.get(1));
-            messages2 = client2.get(2);
+            messages2 = client2.get(3);
         } finally {
             if (session1 != null) session1.close();
             if (session2 != null) session2.close();
@@ -89,17 +89,18 @@ class IntegrationLobbyTest {
         // then
         assertRegisterAction(messages1.getFirst(), "user1");
         assertPlayersAction(messages1.get(1), List.of("user1"));
-        assertRegisterAction(messages1.get(2), "user2");
+        assertThat(messages1.get(2)).contains("LEADER");
+        assertRegisterAction(messages1.get(3), "user2");
 
         assertRegisterAction(messages2.getFirst(), "user2");
         assertPlayersAction(messages2.get(1), List.of("user1", "user2"));
+        assertThat(messages2.get(2)).contains("LEADER");
     }
 
     @Test
-    void testShouldGetReadyLobbyResponse() throws IOException, InterruptedException {
+    void testShouldGetReadyLobbyResponse() throws IOException {
         var client2 = new TestClient(createConnectionUri("user2"), TIMEOUT_MS);
-        try (var session = client.handshake().join(); var ignore = client2.handshake().join()) {
-
+        try (var session = client.handshakeWithCatch().join(); var ignore = client2.handshakeWithCatch().join()) {
             client.get(3);
             session.sendMessage(new TextMessage(createReadyRequest()));
             client.get();

@@ -43,7 +43,7 @@ public class PlayerRunningState implements PlayerStorage {
     private final Map<String, Integer> scores;
 
     private final List<Consumer<Player>> timeoutListeners = new LinkedList<>();
-    private final Consumer<NpcPlayer> npcListener;
+    private final Consumer<NpcPlayer> npcTurnListener;
 
     PlayerRunningState(
         Random random,
@@ -53,7 +53,7 @@ public class PlayerRunningState implements PlayerStorage {
         Consumer<Collection<Player>> stateSwitcher,
         ReadWriteLock globalLock,
         ActionPublisherBuilder builder,
-        Consumer<NpcPlayer> npcListener
+        Consumer<NpcPlayer> npcTurnListener
     ) {
         this(
             random,
@@ -64,7 +64,7 @@ public class PlayerRunningState implements PlayerStorage {
             globalLock,
             builder,
             Executors.newScheduledThreadPool(1, Thread.ofVirtual().factory()),
-            npcListener
+            npcTurnListener
         );
     }
 
@@ -77,7 +77,7 @@ public class PlayerRunningState implements PlayerStorage {
         ReadWriteLock globalLock,
         ActionPublisherBuilder builder,
         ScheduledExecutorService executor,
-        Consumer<NpcPlayer> npcListener
+        Consumer<NpcPlayer> npcTurnListener
     ) {
         this.random = random;
         this.actionPublisher = builder.withPlayers(players::valueList).build();
@@ -93,7 +93,7 @@ public class PlayerRunningState implements PlayerStorage {
         );
         this.activeCounter = new AtomicInteger(this.players.size());
         this.executor = executor;
-        this.npcListener = npcListener;
+        this.npcTurnListener = npcTurnListener;
     }
 
     record FutureWithTimeout(Future<?> future, long expireAtMs) {
@@ -231,7 +231,7 @@ public class PlayerRunningState implements PlayerStorage {
         actionPublisher.publishActionToAll(action);
 
         if (currentPlayer instanceof NpcPlayer npc) {
-            npcListener.accept(npc);
+            npcTurnListener.accept(npc);
         }
     }
 

@@ -4,11 +4,11 @@ import dev.cerios.maugame.mauengine.game.GameEventListener;
 
 public class PlayerFactory {
 
-    public Player createNpcPlayer(String username) {
-        return new NpcPlayer(PlayerIdGenerator.generatePlayerId(), username);
+    public static Player createNpcPlayer(String username) {
+        return new NpcPlayer(PlayerIdGenerator.generate(), username);
     }
 
-    public Player createPlayer(String username, GameEventListener eventListener) {
-        return new Player(PlayerIdGenerator.generatePlayerId(), username, eventListener);
+    public static Player createPlayer(String username, GameEventListener eventListener) {
+        return new Player(PlayerIdGenerator.generate(), username, eventListener);
     }
 }

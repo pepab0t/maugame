@@ -72,6 +72,8 @@ public abstract class ActionMapper {
 
     public abstract DestroyActionDto toDto(DestroyAction action);
 
+    public abstract LeaderActionDto toDto(LeaderAction action);
+
     protected PlayerDto mapRegisterPlayer(RegisterAction action) {
         return action.isMe() ? playerMapper.toPrivateDto(action.player()) : playerMapper.toPublicDto(action.player());
     }

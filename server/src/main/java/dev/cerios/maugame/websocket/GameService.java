@@ -89,10 +89,10 @@ public class GameService {
         game.addNpc(playerId);
     }
 
-    public void removeNpc(String playerId, String npcId) throws NotFoundException, GameException {
+    public void kickPlayer(String playerId, String npcName) throws NotFoundException, GameException {
         var game = storage.getGame(playerId)
             .orElseThrow(() -> new NotFoundException("Game not found for given player."));
-        game.removeNpc(playerId, npcId);
+        game.kickPlayer(playerId, npcName);
     }
 
     public void setPlayerReady(String playerId) throws NotFoundException, GameException {

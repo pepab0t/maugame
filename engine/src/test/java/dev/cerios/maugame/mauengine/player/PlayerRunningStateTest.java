@@ -106,7 +106,7 @@ class PlayerRunningStateTest {
     private PlayerRunningState createPlayerRunningStateWithMockExecutor() {
         doReturn(mockFuture).when(mockExecutor).schedule(any(Runnable.class), anyLong(), any(TimeUnit.class));
         return new PlayerRunningState(
-            random, testPlayers, scores, turnTimeoutMs, stateSwitcher, globalLock, actionPublisherBuilder, mockExecutor
+            random, testPlayers, scores, turnTimeoutMs, stateSwitcher, globalLock, actionPublisherBuilder, mockExecutor, _ -> {}
         );
     }
 
@@ -114,8 +114,9 @@ class PlayerRunningStateTest {
     void constructor_ShouldInitializeCorrectly() {
         // When
         playerRunningState = new PlayerRunningState(
-            random, testPlayers, scores, turnTimeoutMs, stateSwitcher, globalLock, actionPublisherBuilder
+            random, testPlayers, scores, turnTimeoutMs, stateSwitcher, globalLock, actionPublisherBuilder, _ -> {}
         );
+        playerRunningState.initializePlayer();
 
         // Then
         assertNotNull(playerRunningState);
@@ -147,6 +148,7 @@ class PlayerRunningStateTest {
     void getCurrentPlayer_ShouldReturnValidPlayer() {
         // Given
         playerRunningState = createPlayerRunningStateWithMockExecutor();
+        playerRunningState.initializePlayer();
 
         // When
         Player currentPlayer = playerRunningState.getCurrentPlayer();
@@ -209,9 +211,10 @@ class PlayerRunningStateTest {
     }
 
     @Test
-    void getPlayerForPlay_ShouldWorkForCurrentPlayer() throws MauEngineBaseException {
+    void getPlayerForPlay_ShouldWorkForCurrentPlayer() {
         // Given
         playerRunningState = createPlayerRunningStateWithMockExecutor();
+        playerRunningState.initializePlayer();
         Player currentPlayer = playerRunningState.getCurrentPlayer();
 
         PlayerRunningState.BiFunctionChecked<ActionPublisher, Player, Boolean> playerFunction =
@@ -235,6 +238,7 @@ class PlayerRunningStateTest {
     void getPlayerForPlay_ShouldThrowExceptionForWrongPlayer() {
         // Given
         playerRunningState = createPlayerRunningStateWithMockExecutor();
+        playerRunningState.initializePlayer();
         Player currentPlayer = playerRunningState.getCurrentPlayer();
 
         // Find a non-current player
@@ -260,6 +264,7 @@ class PlayerRunningStateTest {
     void getPlayerForPlay_ShouldHandleWinCondition() throws MauEngineBaseException {
         // Given
         playerRunningState = createPlayerRunningStateWithMockExecutor();
+        playerRunningState.initializePlayer();
         Player currentPlayer = playerRunningState.getCurrentPlayer();
 
         PlayerRunningState.BiFunctionChecked<ActionPublisher, Player, Boolean> winFunction =
@@ -294,23 +299,13 @@ class PlayerRunningStateTest {
         };
 
         playerRunningState = new PlayerRunningState(
-            random, twoPlayers, scores, turnTimeoutMs, switcher, globalLock, actionPublisherBuilder
+            random, twoPlayers, scores, turnTimeoutMs, switcher, globalLock, actionPublisherBuilder, mockExecutor, _ -> {}
         );
-
-        try {
-            var executorField = PlayerRunningState.class.getDeclaredField("executor");
-            executorField.setAccessible(true);
-            executorField.set(playerRunningState, mockExecutor);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
         doReturn(mockFuture).when(mockExecutor).schedule(any(Runnable.class), anyLong(), any(TimeUnit.class));
 
+        playerRunningState.initializePlayer();
         Player currentPlayer = playerRunningState.getCurrentPlayer();
-
-        PlayerRunningState.BiFunctionChecked<ActionPublisher, Player, Boolean> winFunction =
-            (publisher, player) -> true; // Player wins
+        PlayerRunningState.BiFunctionChecked<ActionPublisher, Player, Boolean> winFunction = (_, _) -> true; // Player wins
 
         // When
         playerRunningState.getPlayerForPlay(currentPlayer.getPlayerId(), winFunction);
@@ -346,6 +341,7 @@ class PlayerRunningStateTest {
     void getLastExpire_ShouldReturnExpireTime() throws MauEngineBaseException {
         // Given
         playerRunningState = createPlayerRunningStateWithMockExecutor();
+        playerRunningState.initializePlayer();
         Player currentPlayer = playerRunningState.getCurrentPlayer();
 
         // Simulate a turn
@@ -378,6 +374,7 @@ class PlayerRunningStateTest {
     void getPlayerRank_ShouldReturnUnmodifiableList() throws MauEngineBaseException {
         // Given
         playerRunningState = createPlayerRunningStateWithMockExecutor();
+        playerRunningState.initializePlayer();
         Player currentPlayer = playerRunningState.getCurrentPlayer();
 
         // Make a player win
@@ -418,6 +415,7 @@ class PlayerRunningStateTest {
     void timeoutScenario_ShouldHandlePlayerTimeout() throws Exception {
         // Given
         playerRunningState = createPlayerRunningStateWithMockExecutor();
+        playerRunningState.initializePlayer();
         Consumer<Player> timeoutListener = mock(Consumer.class);
         playerRunningState.listenTimeout(timeoutListener);
 
@@ -443,6 +441,7 @@ class PlayerRunningStateTest {
     void multiplePlayersWinning_ShouldMaintainCorrectRanking() throws MauEngineBaseException {
         // Given
         playerRunningState = createPlayerRunningStateWithMockExecutor();
+        playerRunningState.initializePlayer();
 
         Player firstPlayer = playerRunningState.getCurrentPlayer();
         String firstName = firstPlayer.getUsername();
@@ -470,6 +469,7 @@ class PlayerRunningStateTest {
     void biFunctionChecked_ShouldHandleExceptions() {
         // Given
         playerRunningState = createPlayerRunningStateWithMockExecutor();
+        playerRunningState.initializePlayer();
         Player currentPlayer = playerRunningState.getCurrentPlayer();
 
         PlayerRunningState.BiFunctionChecked<ActionPublisher, Player, Boolean> throwingFunction =

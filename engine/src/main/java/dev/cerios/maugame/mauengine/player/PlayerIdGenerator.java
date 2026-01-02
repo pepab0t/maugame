@@ -3,7 +3,7 @@ package dev.cerios.maugame.mauengine.player;
 import com.github.f4b6a3.ulid.UlidCreator;
 
 public class PlayerIdGenerator {
-    public static String generatePlayerId() {
+    public static String generate() {
         return UlidCreator.getUlid().toString();
     }
 }
