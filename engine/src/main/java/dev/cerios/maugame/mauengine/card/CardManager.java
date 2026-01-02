@@ -25,8 +25,8 @@ public class CardManager {
             .shuffleRemaining();
     }
 
-    static Set<Card> createCards() {
-        Set<Card> cards = new HashSet<>();
+    static Collection<Card> createCards() {
+        Collection<Card> cards = new ArrayList<>(32);
         for (CardType type : CardType.values()) {
             for (Color color : Color.values()) {
                 cards.add(new Card(type, color));
@@ -173,5 +173,9 @@ public class CardManager {
 
     private boolean isFloatingCard(Card card) {
         return floatingCards.containsKey(card);
+    }
+
+    public boolean isReturnCard(Card card) {
+        return card.type() == CardType.SEVEN;
     }
 }

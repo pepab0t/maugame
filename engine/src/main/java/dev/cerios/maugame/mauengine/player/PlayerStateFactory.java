@@ -27,6 +27,7 @@ public class PlayerStateFactory {
         Consumer<NpcPlayer> npcListener
     ) {
         return new PlayerRunningState(
+            gameId,
             random,
             players,
             scores,
