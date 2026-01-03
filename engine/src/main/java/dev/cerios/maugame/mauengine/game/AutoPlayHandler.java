@@ -67,9 +67,10 @@ public class AutoPlayHandler {
     }
 
     private Color mostOccuredColor(List<Card> cards) {
-        Map<Color, Integer> colors = new HashMap<>(4);
+        Map<Color, Integer> colors = new HashMap<>(Color.values().length);
         for (var card : cards) {
-            colors.compute(card.color(), (k, v) -> v == null ? 1 : v + 1);
+            if (card.type() == CardType.QUEEN) continue;
+            colors.compute(card.color(), (_, v) -> v == null ? 1 : v + 1);
         }
         return colors.entrySet().stream()
             .max(Comparator.comparingInt(Map.Entry::getValue))

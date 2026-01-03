@@ -23,10 +23,12 @@ public class PlayerRunningState implements PlayerStorage {
 
     private final AtomicInteger activeCounter;
 
+    private final UUID gameId;
     private final ListOrderedMap<String, Player> players = new ListOrderedMap<>();
     private int nextIndex;
     private int scorePoints;
     private final List<String> playerRank = new LinkedList<>();
+    private final Deque<Player> winCandidates = new LinkedList<>();
     private final Consumer<Collection<Player>> stateSwitcher;
 
     private final Random random;
@@ -46,6 +48,7 @@ public class PlayerRunningState implements PlayerStorage {
     private final Consumer<NpcPlayer> npcTurnListener;
 
     PlayerRunningState(
+        UUID gameId,
         Random random,
         Collection<Player> playerCollection,
         Map<String, Integer> scores,
@@ -56,6 +59,7 @@ public class PlayerRunningState implements PlayerStorage {
         Consumer<NpcPlayer> npcTurnListener
     ) {
         this(
+            gameId,
             random,
             playerCollection,
             scores,
@@ -69,6 +73,7 @@ public class PlayerRunningState implements PlayerStorage {
     }
 
     PlayerRunningState(
+        UUID gameId,
         Random random,
         Collection<Player> playerCollection,
         Map<String, Integer> scores,
@@ -79,6 +84,7 @@ public class PlayerRunningState implements PlayerStorage {
         ScheduledExecutorService executor,
         Consumer<NpcPlayer> npcTurnListener
     ) {
+        this.gameId = gameId;
         this.random = random;
         this.actionPublisher = builder.withPlayers(players::valueList).build();
         this.turnTimeoutMs = turnTimeoutMs;
@@ -135,8 +141,8 @@ public class PlayerRunningState implements PlayerStorage {
 
         var shouldWin = playerFunction.apply(actionPublisher, player);
 
-        if (shouldWin && !win(player))
-            return;
+        if (shouldWin)
+            winCandidates.add(player);
 
         shiftPlayer();
     }
@@ -152,6 +158,17 @@ public class PlayerRunningState implements PlayerStorage {
 
     public void listenTimeout(Consumer<Player> listener) {
         timeoutListeners.add(listener);
+    }
+
+    /**
+     *
+     * @return whether game should continue
+     */
+    public boolean approveWinCandidates() {
+        while (!winCandidates.isEmpty()) {
+            win(winCandidates.remove());
+        }
+        return activeCounter.get() > 1;
     }
 
     public void endInstantly() {
@@ -227,8 +244,14 @@ public class PlayerRunningState implements PlayerStorage {
         var expireTime = System.currentTimeMillis() + turnTimeoutMs;
         var timeoutFuture = executor.schedule(() -> timeoutPlayer(currentPlayer), turnTimeoutMs, TimeUnit.MILLISECONDS);
         futures.put(currentPlayer.getPlayerId(), new FutureWithTimeout(timeoutFuture, expireTime));
-        var action = new PlayerShiftAction(currentPlayer, expireTime);
-        actionPublisher.publishActionToAll(action);
+        actionPublisher.publishActionToAll(new PlayerShiftAction(currentPlayer, expireTime));
+
+        log.debug("{}: {}'s turn", gameId, currentPlayer.getUsername());
+
+        var firstCandidate = winCandidates.peek();
+        if (firstCandidate != null && firstCandidate.getPlayerId().equals(currentPlayer.getPlayerId())) {
+            winCandidates.removeFirst();
+        }
 
         if (currentPlayer instanceof NpcPlayer npc) {
             npcTurnListener.accept(npc);

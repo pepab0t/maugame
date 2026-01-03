@@ -28,6 +28,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 
+import static dev.cerios.maugame.mauengine.TestUtils.getField;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -106,7 +107,7 @@ class PlayerRunningStateTest {
     private PlayerRunningState createPlayerRunningStateWithMockExecutor() {
         doReturn(mockFuture).when(mockExecutor).schedule(any(Runnable.class), anyLong(), any(TimeUnit.class));
         return new PlayerRunningState(
-            random, testPlayers, scores, turnTimeoutMs, stateSwitcher, globalLock, actionPublisherBuilder, mockExecutor, _ -> {}
+            UUID.randomUUID(), random, testPlayers, scores, turnTimeoutMs, stateSwitcher, globalLock, actionPublisherBuilder, mockExecutor, _ -> {}
         );
     }
 
@@ -114,7 +115,7 @@ class PlayerRunningStateTest {
     void constructor_ShouldInitializeCorrectly() {
         // When
         playerRunningState = new PlayerRunningState(
-            random, testPlayers, scores, turnTimeoutMs, stateSwitcher, globalLock, actionPublisherBuilder, _ -> {}
+            UUID.randomUUID(), random, testPlayers, scores, turnTimeoutMs, stateSwitcher, globalLock, actionPublisherBuilder, _ -> {}
         );
         playerRunningState.initializePlayer();
 
@@ -268,10 +269,11 @@ class PlayerRunningStateTest {
         Player currentPlayer = playerRunningState.getCurrentPlayer();
 
         PlayerRunningState.BiFunctionChecked<ActionPublisher, Player, Boolean> winFunction =
-            (publisher, player) -> true; // Player wins
+            (_, _) -> true; // Player wins
 
         // When
         playerRunningState.getPlayerForPlay(currentPlayer.getPlayerId(), winFunction);
+        playerRunningState.approveWinCandidates();
 
         // Then
         assertTrue(currentPlayer.isFinished());
@@ -281,7 +283,7 @@ class PlayerRunningStateTest {
     }
 
     @Test
-    void getPlayerForPlay_ShouldEndGameWhenOnlyOnePlayerLeft() throws MauEngineBaseException {
+    void getPlayerForPlay_shouldAddCandidateWhenOnlyOnePlayerLeft() throws Exception {
         // Given
         List<Player> twoPlayers = List.of(
             new Player("player1", "user1", eventListener1),
@@ -299,7 +301,7 @@ class PlayerRunningStateTest {
         };
 
         playerRunningState = new PlayerRunningState(
-            random, twoPlayers, scores, turnTimeoutMs, switcher, globalLock, actionPublisherBuilder, mockExecutor, _ -> {}
+            UUID.randomUUID(), random, twoPlayers, scores, turnTimeoutMs, switcher, globalLock, actionPublisherBuilder, mockExecutor, _ -> {}
         );
         doReturn(mockFuture).when(mockExecutor).schedule(any(Runnable.class), anyLong(), any(TimeUnit.class));
 
@@ -311,9 +313,10 @@ class PlayerRunningStateTest {
         playerRunningState.getPlayerForPlay(currentPlayer.getPlayerId(), winFunction);
 
         // Then
-        verify(actionPublisher).publishActionToAll(any(EndAction.class));
-        assertThat(switcher.getPlayers()).containsExactlyElementsOf(playerRunningState.getPlayers());
-        assertEquals(2, playerRunningState.getPlayerRank().size()); // Both players should be in rank
+        verify(actionPublisher, never()).publishActionToAll(any(EndAction.class));
+        assertThat(switcher.getPlayers()).isEmpty();
+        assertThat(playerRunningState.getPlayerRank()).isEmpty(); // Both players should be in rank
+        assertThat((Queue<Player>) getField(playerRunningState, "winCandidates")).hasSize(1);
     }
 
     @Test
@@ -381,6 +384,7 @@ class PlayerRunningStateTest {
         PlayerRunningState.BiFunctionChecked<ActionPublisher, Player, Boolean> winFunction =
             (publisher, player) -> true;
         playerRunningState.getPlayerForPlay(currentPlayer.getPlayerId(), winFunction);
+        playerRunningState.approveWinCandidates();
 
         // When
         List<String> rank = playerRunningState.getPlayerRank();
@@ -455,6 +459,7 @@ class PlayerRunningStateTest {
         Player secondPlayer = playerRunningState.getCurrentPlayer();
         String secondName = secondPlayer.getUsername();
         playerRunningState.getPlayerForPlay(secondPlayer.getPlayerId(), winFunction);
+        playerRunningState.approveWinCandidates();
 
         // Then
         List<String> rank = playerRunningState.getPlayerRank();

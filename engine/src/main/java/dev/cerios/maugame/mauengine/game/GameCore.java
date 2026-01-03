@@ -55,7 +55,11 @@ class GameCore {
 
     public void performPlayCard(final String playerId, Card card, Color nextColor) throws MauEngineBaseException {
         var players = getRunningState();
-        players.getPlayerForPlay(playerId, (publisher, player) -> playCardInternal(publisher, player, card, nextColor));
+        var shouldPlay = true;
+        if (!cardManager.isReturnCard(card))
+            shouldPlay = players.approveWinCandidates();
+        if (shouldPlay)
+            players.getPlayerForPlay(playerId, (publisher, player) -> playCardInternal(publisher, player, card, nextColor));
     }
 
     private boolean playCardInternal(ActionPublisher publisher, Player player, Card card, Color nextColor) throws PlayerMoveException, CardException {
@@ -100,7 +104,8 @@ class GameCore {
 
     public void performDraw(final String playerId) throws MauEngineBaseException {
         var players = getRunningState();
-        players.getPlayerForPlay(playerId, this::drawInternal);
+        if (players.approveWinCandidates())
+            players.getPlayerForPlay(playerId, this::drawInternal);
     }
 
     private boolean drawInternal(ActionPublisher publisher, Player player) throws PlayerMoveException, CardException {
@@ -118,7 +123,8 @@ class GameCore {
 
     public void performPass(final String playerId) throws MauEngineBaseException {
         var players = getRunningState();
-        players.getPlayerForPlay(playerId, this::passInternal);
+        if (players.approveWinCandidates())
+            players.getPlayerForPlay(playerId, this::passInternal);
     }
 
     private boolean passInternal(ActionPublisher publisher, Player player) throws PlayerMoveException, CardException {
