@@ -89,7 +89,7 @@ class PlayerFinishState extends PlayerReadyStorage {
 
     @Override
     public List<Player> getPlayers() {
-        return List.copyOf(players.valueList());
+        return players.valueList();
     }
 
     @Override

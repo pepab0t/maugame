@@ -110,7 +110,7 @@ public class PlayerRunningState implements PlayerStorage {
 
     @Override
     public Collection<Player> getPlayers() {
-        return List.copyOf(players.valueList());
+        return players.valueList();
     }
 
     public Player getCurrentPlayer() {

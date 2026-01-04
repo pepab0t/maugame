@@ -64,7 +64,7 @@ public class PlayerLobbyState extends PlayerReadyStorage {
 
         actionPublisher.publishActionExcludingPlayer(new RegisterAction(gameId, player, false), playerId);
         actionPublisher.publishAction(player, new RegisterAction(gameId, player, true));
-        actionPublisher.publishAction(player, new PlayersAction(getPlayers()));
+        actionPublisher.publishAction(player, new PlayersAction(getPlayersCopy()));
         if (leader == null) {
             leader = player;
             actionPublisher.publishActionToAll(new LeaderAction(leader.getUsername()));
@@ -176,6 +176,10 @@ public class PlayerLobbyState extends PlayerReadyStorage {
 
     @Override
     public List<Player> getPlayers() {
+        return players.valueList();
+    }
+
+    public List<Player> getPlayersCopy() {
         return List.copyOf(players.valueList());
     }
 
