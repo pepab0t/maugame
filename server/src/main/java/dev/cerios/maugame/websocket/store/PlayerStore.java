@@ -1,4 +1,4 @@
-package dev.cerios.maugame.websocket;
+package dev.cerios.maugame.websocket.store;
 
 import dev.cerios.maugame.mauengine.exception.NotSupportedOperation;
 import dev.cerios.maugame.mauengine.game.Game;

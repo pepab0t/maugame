@@ -2,11 +2,11 @@ package dev.cerios.maugame.websocket.wshandler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.cerios.maugame.mauengine.exception.GameException;
-import dev.cerios.maugame.websocket.GameService;
 import dev.cerios.maugame.websocket.exception.MauTimeoutException;
 import dev.cerios.maugame.websocket.exception.ServerException;
 import dev.cerios.maugame.websocket.message.Message;
 import dev.cerios.maugame.websocket.request.RequestProcessor;
+import dev.cerios.maugame.websocket.service.GameService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

@@ -1,4 +1,4 @@
-package dev.cerios.maugame.websocket;
+package dev.cerios.maugame.websocket.service;
 
 import dev.cerios.maugame.mauengine.card.Card;
 import dev.cerios.maugame.mauengine.card.Color;
@@ -9,6 +9,8 @@ import dev.cerios.maugame.mauengine.player.NpcPlayer;
 import dev.cerios.maugame.websocket.exception.LobbyAlreadyExistsException;
 import dev.cerios.maugame.websocket.exception.NotFoundException;
 import dev.cerios.maugame.websocket.message.ServerMessage;
+import dev.cerios.maugame.websocket.store.GameStorage;
+import dev.cerios.maugame.websocket.store.PlayerStore;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
