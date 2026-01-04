@@ -13,6 +13,8 @@ public class MauWebsocketApplication {
         SpringApplication.run(MauWebsocketApplication.class, args);
     }
 
+    // TODO game.getPlayer(String playerId) should return Optional
+
     @Bean
     public CommandLineRunner commandLineRunner(MauSettings settings) {
         return _ -> log.info("started with settings: {}", settings);

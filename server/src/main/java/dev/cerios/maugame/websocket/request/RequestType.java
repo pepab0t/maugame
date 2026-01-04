@@ -2,7 +2,8 @@ package dev.cerios.maugame.websocket.request;
 
 public enum RequestType {
     MOVE,
-    CONTROL;
+    CONTROL,
+    CHAT;
 
     public enum MoveType {
         PLAY,
@@ -14,6 +15,7 @@ public enum RequestType {
         READY,
         UNREADY,
         KICK,
-        CHEAT_END, REGISTER_NPC
+        CHEAT_END,
+        REGISTER_NPC
     }
 }

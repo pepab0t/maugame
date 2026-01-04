@@ -27,9 +27,13 @@ public class ServerMessage implements Message {
         return new ServerMessage(new InfoMessageBody(message));
     }
 
-    public static ServerMessage ofDisconnect(String username) { return new ServerMessage(new DisconnectMessageBody(username)); }
+    public static ServerMessage ofDisconnect(String username) {return new ServerMessage(new DisconnectMessageBody(username));}
 
-    public static ServerMessage ofReconnect(String username) { return new ServerMessage(new ReconnectMessageBody(username)); }
+    public static ServerMessage ofReconnect(String username) {return new ServerMessage(new ReconnectMessageBody(username));}
+
+    public static ServerMessage ofChat(String username, String message) {
+        return new ServerMessage(new ChatMessageBody(username, message));
+    }
 
     @Getter
     @ToString
@@ -47,7 +51,8 @@ public class ServerMessage implements Message {
         UNREADY,
         DISCONNECT,
         RECONNECT,
-        INFO
+        INFO,
+        CHAT
     }
 
     @Getter
@@ -104,6 +109,19 @@ public class ServerMessage implements Message {
         public ReconnectMessageBody(String username) {
             super(BodyType.RECONNECT);
             this.username = username;
+        }
+    }
+
+    @Getter
+    @ToString(callSuper = true)
+    public static class ChatMessageBody extends MessageBody {
+        private final String username;
+        private final String message;
+
+        public ChatMessageBody(String username, String message) {
+            super(BodyType.CHAT);
+            this.username = username;
+            this.message = message;
         }
     }
 }

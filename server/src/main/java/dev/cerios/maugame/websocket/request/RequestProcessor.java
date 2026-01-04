@@ -1,19 +1,20 @@
-package dev.cerios.maugame.websocket;
+package dev.cerios.maugame.websocket.request;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.cerios.maugame.mauengine.exception.MauEngineBaseException;
+import dev.cerios.maugame.websocket.*;
 import dev.cerios.maugame.websocket.dto.request.PlayRequestDto;
 import dev.cerios.maugame.websocket.exception.InvalidCommandException;
 import dev.cerios.maugame.websocket.exception.MauTimeoutException;
 import dev.cerios.maugame.websocket.exception.NotFoundException;
 import dev.cerios.maugame.websocket.mapper.ExceptionMapper;
-import dev.cerios.maugame.websocket.request.RequestType;
 import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
 import java.util.Optional;
 
 @Component
@@ -25,6 +26,7 @@ public class RequestProcessor {
     private final ExceptionMapper exceptionMapper;
     private final PlayerStore storage;
     private final GameService gameService;
+    private final ChatService chatService;
     private final Validator validator;
     private final MessageDistributor distributor;
     private final MauSettings settings;
@@ -46,10 +48,22 @@ public class RequestProcessor {
                     Optional.ofNullable(root.get("control")).orElseThrow(() -> new InvalidCommandException("Missing field: control")),
                     playerId
                 );
+                case CHAT -> processChat(
+                    Objects.requireNonNull(
+                        Optional.ofNullable(root.get("message"))
+                            .orElseThrow(() -> new InvalidCommandException("Missing field: chat"))
+                            .textValue()
+                    ),
+                    playerId
+                );
             }
         } catch (Exception e) {
             distributor.enqueueMessage(playerId, exceptionMapper.toErrorResponse(e));
         }
+    }
+
+    private void processChat(String message, String senderId) {
+        chatService.sendChatMessage(message, senderId);
     }
 
     private void processMove(JsonNode node, final String playerId) throws InvalidCommandException, MauEngineBaseException {
