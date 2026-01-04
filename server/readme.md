@@ -119,6 +119,15 @@ and possible query parameters:
 }
 ```
 
+#### Chat
+
+```json
+{
+  "requestType": "CHAT",
+  "message": "Hello World!"
+}
+```
+
 ## Messages
 
 ### type: __ACTION__
@@ -155,5 +164,18 @@ and possible query parameters:
     "message": "This is an exception message.",
     "timestamp": "2025-08-29T07:36:33.204362Z"
   }
+}
+```
+
+### type: __SERVER_MESSAGE__
+
+```json
+{
+  "body": {
+    "username": "joe",
+    "message": "Hello world",
+    "bodyType": "CHAT"
+  },
+  "messageType": "SERVER_MESSAGE"
 }
 ```

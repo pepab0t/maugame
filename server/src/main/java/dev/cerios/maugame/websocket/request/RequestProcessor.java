@@ -55,8 +55,8 @@ public class RequestProcessor {
                 case CHAT -> processChat(
                     Objects.requireNonNull(
                         Optional.ofNullable(root.get("message"))
-                            .orElseThrow(() -> new InvalidCommandException("Missing field: chat"))
-                            .textValue()
+                            .map(JsonNode::textValue)
+                            .orElseThrow(() -> new InvalidCommandException("Missing field: message"))
                     ),
                     playerId
                 );
@@ -67,7 +67,8 @@ public class RequestProcessor {
     }
 
     private void processChat(String message, String senderId) {
-        chatService.sendChatMessage(message, senderId);
+        if (message.isBlank()) return;
+        chatService.sendChatMessage(senderId, message.strip());
     }
 
     private void processMove(JsonNode node, final String playerId) throws InvalidCommandException, MauEngineBaseException {
