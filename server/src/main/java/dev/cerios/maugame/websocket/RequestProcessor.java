@@ -23,7 +23,7 @@ public class RequestProcessor {
 
     private final ObjectMapper objectMapper;
     private final ExceptionMapper exceptionMapper;
-    private final PlayerSessionStorage storage;
+    private final PlayerStore storage;
     private final GameService gameService;
     private final Validator validator;
     private final MessageDistributor distributor;

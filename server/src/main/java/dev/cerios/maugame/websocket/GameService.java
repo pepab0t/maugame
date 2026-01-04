@@ -18,7 +18,7 @@ import org.springframework.web.socket.WebSocketSession;
 @RequiredArgsConstructor
 @Slf4j
 public class GameService {
-    private final PlayerSessionStorage storage;
+    private final PlayerStore storage;
     private final MessageDistributor distributor;
     private final GameStorage gameStorage;
 

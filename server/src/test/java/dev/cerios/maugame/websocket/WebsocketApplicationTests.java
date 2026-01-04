@@ -18,7 +18,7 @@ class WebsocketApplicationTests {
     RequestProcessor requestProcessor;
 
     @MockitoBean
-    PlayerSessionStorage storage;
+    PlayerStore storage;
 
     @Test
     void contextLoads() {

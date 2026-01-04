@@ -38,7 +38,7 @@ public class IntegrationGameTest {
     @Autowired
     private GameStorage gameStorage;
     @Autowired
-    private PlayerSessionStorage storage;
+    private PlayerStore storage;
 
     static final long TIMEOUT_MS = 2000;
 

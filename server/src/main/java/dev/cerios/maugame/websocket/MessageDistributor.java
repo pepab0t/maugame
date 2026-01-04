@@ -23,13 +23,13 @@ import java.util.concurrent.locks.ReentrantLock;
 public class MessageDistributor {
 
     private final ExecutorService executor;
-    private final PlayerSessionStorage storage;
+    private final PlayerStore storage;
     private final ObjectMapper objectMapper;
     private final ActionMapper actionMapper;
 
     private final Lock lock = new ReentrantLock();
 
-    public MessageDistributor(ExecutorService executor, PlayerSessionStorage storage, ObjectMapper objectMapper, ActionMapper actionMapper) {
+    public MessageDistributor(ExecutorService executor, PlayerStore storage, ObjectMapper objectMapper, ActionMapper actionMapper) {
         this.executor = executor;
         this.storage = storage;
         this.objectMapper = objectMapper;

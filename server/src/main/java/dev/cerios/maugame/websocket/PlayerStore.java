@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 
 @Component
 @Slf4j
-public class PlayerSessionStorage {
+public class PlayerStore {
 
     private final Map<String, CompletableFuture<WebSocketSession>> playerToSession = new ConcurrentHashMap<>();
     private final Map<String, CompletableFuture<GamePlayer>> sessionToPlayer = new ConcurrentHashMap<>();
@@ -40,7 +40,7 @@ public class PlayerSessionStorage {
 
     public Optional<WebSocketSession> getSessionInstant(String playerId) {
         return Optional.ofNullable(playerToSession.get(playerId))
-                .map(cf -> cf.getNow(null));
+            .map(cf -> cf.getNow(null));
     }
 
     public GamePlayer getPlayer(String sessionId) {
@@ -64,14 +64,14 @@ public class PlayerSessionStorage {
         var player = playerFuture.getNow(null);
         var playerId = player.getPlayerId();
         Optional.ofNullable(playerToSession.remove(playerId))
-                .map(future -> future.getNow(null))
-                .ifPresent(session -> {
-                    try {
-                        session.close();
-                    } catch (IOException e) {
-                        log.debug("error when closing session", e);
-                    }
-                });
+            .map(future -> future.getNow(null))
+            .ifPresent(session -> {
+                try {
+                    session.close();
+                } catch (IOException e) {
+                    log.debug("error when closing session", e);
+                }
+            });
         playerLocks.remove(playerId);
         log.info("Player {} disconnected.", player);
         return player;
@@ -117,28 +117,30 @@ public class PlayerSessionStorage {
      * @return <i>empty</i> if game remains empty, <i>Game</i> if it has more players left
      */
     private Optional<Game> removePlayerFromGame(String playerId) {
-        return Optional.ofNullable(playerToGame.computeIfPresent(playerId, (id, game) -> {
-            try {
-                game.removePlayer(id);
-                log.info("Player {} removed from the game {}", id, game);
-                return null;
-            } catch (NotSupportedOperation _) {
-                return game;
+        return Optional.ofNullable(playerToGame.computeIfPresent(
+            playerId, (id, game) -> {
+                try {
+                    game.removePlayer(id);
+                    log.info("Player {} removed from the game {}", id, game);
+                    return null;
+                } catch (NotSupportedOperation _) {
+                    return game;
+                }
             }
-        }));
+        ));
     }
 
     public void removePlayerById(String playerId) {
         Optional.ofNullable(playerToSession.remove(playerId))
-                .map(future -> future.getNow(null))
-                .ifPresent(session -> {
-                    sessionToPlayer.remove(session.getId());
-                    try {
-                        session.close();
-                    } catch (IOException e) {
-                        log.debug("error during closing session", e);
-                    }
-                });
+            .map(future -> future.getNow(null))
+            .ifPresent(session -> {
+                sessionToPlayer.remove(session.getId());
+                try {
+                    session.close();
+                } catch (IOException e) {
+                    log.debug("error during closing session", e);
+                }
+            });
         playerLocks.remove(playerId);
         removePlayerFromGame(playerId);
     }

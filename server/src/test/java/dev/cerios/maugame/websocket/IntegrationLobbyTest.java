@@ -51,7 +51,7 @@ class IntegrationLobbyTest {
     @Autowired
     private MauSettings mauSettings;
     @Autowired
-    private PlayerSessionStorage playerSessionStorage;
+    private PlayerStore playerStore;
 
     @BeforeEach
     void setUp() {
@@ -62,7 +62,7 @@ class IntegrationLobbyTest {
     @AfterEach
     void tearDown() {
         gameStorage.clear();
-        playerSessionStorage.clear();
+        playerStore.clear();
     }
 
     @Test

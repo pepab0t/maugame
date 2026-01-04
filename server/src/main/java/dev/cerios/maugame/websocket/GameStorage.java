@@ -24,7 +24,7 @@ public class GameStorage {
 
     private final GameFactory gameFactory;
     private final MessageDistributor distributor;
-    private final PlayerSessionStorage storage;
+    private final PlayerStore storage;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
     private final LinkedHashMap<UUID, NamedGame> publicGames = new LinkedHashMap<>();
