@@ -122,7 +122,7 @@ class PlayerFinishState extends PlayerReadyStorage {
         startListeners.add(startListener);
     }
 
-    public void listenStart(List<Consumer<UUID>> startListeners) {
+    public void listenStart(Collection<Consumer<UUID>> startListeners) {
         this.startListeners.addAll(startListeners);
     }
 
