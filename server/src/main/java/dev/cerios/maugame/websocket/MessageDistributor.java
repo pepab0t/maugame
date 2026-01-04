@@ -42,7 +42,7 @@ public class MessageDistributor {
             var ps = storage.getPlayerSources(player.getPlayerId());
             if (ps == null)
                 return;
-            ps.queue().add(() -> distributeAction(player.getPlayerId(), action));
+            ps.queue().add(() -> distributeAction(player, action));
             executor.execute(() -> {
                 try {
                     ps.lock().lock();
@@ -89,9 +89,9 @@ public class MessageDistributor {
         }
     }
 
-    private void distributeAction(String playerId, Action a) {
+    private void distributeAction(GamePlayer player, Action a) {
         try {
-            var session = storage.getSession(playerId);
+            var session = storage.getSession(player.getPlayerId());
             var dto = mapAction(a);
 
             sendMessage(
@@ -100,11 +100,11 @@ public class MessageDistributor {
             );
 
             switch (a.getType()) {
-                case DISQUALIFIED, DESTROY -> storage.removePlayerById(playerId);
+                case DISQUALIFIED, DESTROY -> storage.removePlayerById(player.getPlayerId());
                 default -> {
                 }
             }
-
+            log.debug("send to {} action: {}", player.getUsername(), dto);
         } catch (JsonProcessingException e) {
             log.info("error during serialization", e);
         } catch (MauTimeoutException ignore) {

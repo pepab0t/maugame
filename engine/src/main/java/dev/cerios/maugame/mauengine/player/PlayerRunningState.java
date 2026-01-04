@@ -197,6 +197,7 @@ public class PlayerRunningState implements PlayerStorage {
         activeCounter.decrementAndGet();
         playerRank.add(player.getUsername());
         addScore(player.getUsername());
+        Optional.ofNullable(futures.remove(player.getPlayerId())).ifPresent(FutureWithTimeout::cancel);
 
         var gameContinues = activeCounter.get() > 1;
         if (gameContinues)
@@ -243,7 +244,8 @@ public class PlayerRunningState implements PlayerStorage {
         var currentPlayer = findNextPlayer();
         var expireTime = System.currentTimeMillis() + turnTimeoutMs;
         var timeoutFuture = executor.schedule(() -> timeoutPlayer(currentPlayer), turnTimeoutMs, TimeUnit.MILLISECONDS);
-        futures.put(currentPlayer.getPlayerId(), new FutureWithTimeout(timeoutFuture, expireTime));
+        var previousFuture = futures.put(currentPlayer.getPlayerId(), new FutureWithTimeout(timeoutFuture, expireTime));
+        if (previousFuture != null) previousFuture.cancel();
         actionPublisher.publishActionToAll(new PlayerShiftAction(currentPlayer, expireTime));
 
         log.debug("{}: {}'s turn", gameId, currentPlayer.getUsername());
@@ -259,6 +261,7 @@ public class PlayerRunningState implements PlayerStorage {
     }
 
     private void timeoutPlayer(Player player) {
+        log.debug("{}: {} timed out", gameId, player.getUsername());
         final var l = globalLock.writeLock();
         try {
             l.lock();
@@ -314,6 +317,7 @@ public class PlayerRunningState implements PlayerStorage {
         var losingPlayer = findNextPlayer();
         losingPlayer.getHand().clear();
         losingPlayer.deactivate();
+        Optional.ofNullable(futures.remove(losingPlayer.getPlayerId())).ifPresent(FutureWithTimeout::cancel);
         activeCounter.decrementAndGet();
         playerRank.add(losingPlayer.getUsername());
         addScore(losingPlayer.getUsername());
