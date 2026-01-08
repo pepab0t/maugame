@@ -98,6 +98,8 @@ and possible query parameters:
 }
 ```
 
+#### Kick player from lobby (only for lobby owner)
+
 ```json
 {
   "requestType": "CONTROL",
@@ -124,7 +126,19 @@ and possible query parameters:
 ```json
 {
   "requestType": "CHAT",
-  "message": "Hello World!"
+  "chat": {
+    "chatType": "MESSAGE",
+    "message": "Hello World!"
+  }
+}
+```
+
+```json
+{
+  "requestType": "CHAT",
+  "chat": {
+    "chatType": "HISTORY"
+  }
 }
 ```
 

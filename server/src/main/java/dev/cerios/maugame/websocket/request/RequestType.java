@@ -18,4 +18,9 @@ public enum RequestType {
         CHEAT_END,
         REGISTER_NPC
     }
+
+    public enum ChatType {
+        MESSAGE,
+        HISTORY
+    }
 }

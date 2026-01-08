@@ -37,13 +37,21 @@ public class MessageDistributor {
         this.actionMapper = actionMapper;
     }
 
-    public void distribute(GamePlayer player, Action action) {
+    public void enqueue(GamePlayer player, Action action) {
+        enqueueInternal(player.getPlayerId(), () -> enqueueAction(player, action));
+    }
+
+    public void enqueue(String playerId, Message message) {
+        enqueueInternal(playerId, () -> enqueueMessage(playerId, message));
+    }
+
+    private void enqueueInternal(String playerId, Runnable runnable) {
         try {
             lock.lock();
-            var ps = storage.getPlayerSources(player.getPlayerId());
+            var ps = storage.getPlayerSources(playerId);
             if (ps == null)
                 return;
-            ps.queue().add(() -> distributeAction(player, action));
+            ps.queue().add(runnable);
             executor.execute(() -> {
                 try {
                     ps.lock().lock();
@@ -57,40 +65,23 @@ public class MessageDistributor {
         }
     }
 
-    public void enqueueMessage(String playerId, Message message) {
+    private void enqueueMessage(String playerId, Message message) {
         try {
-            lock.lock();
-            final var ps = storage.getPlayerSources(playerId);
-            if (ps == null)
-                return;
-            var wsMessage = new TextMessage(objectMapper.writeValueAsString(message));
-            var session = storage.getSessionInstant(playerId)
-                .orElseThrow(() -> new IllegalStateException("Message %s will not be sent, since session for player %s not found.".formatted(message, playerId)));
-            ps.queue().add(() -> {
-                try {
-                    session.sendMessage(wsMessage);
-                } catch (IOException e) {
-                    log.debug("Message {} could not be sent.", message, e);
-                }
-            });
-            executor.execute(() -> {
-                try {
-                    ps.lock().lock();
-                    ps.queue().remove().run();
-                } finally {
-                    ps.lock().unlock();
-                }
-            });
-        } catch (IllegalStateException e) {
-            log.debug(e.getMessage());
+            var session = storage.getSession(playerId);
+
+            sendMessage(
+                session,
+                new TextMessage(objectMapper.writeValueAsString(message))
+            );
+
+            log.debug("send to {} message: {}", playerId, message);
         } catch (JsonProcessingException e) {
-            log.debug("Message {} could not be serialized.", message, e);
-        } finally {
-            lock.unlock();
+            log.info("error during serialization", e);
+        } catch (MauTimeoutException ignore) {
         }
     }
 
-    private void distributeAction(GamePlayer player, Action a) {
+    private void enqueueAction(GamePlayer player, Action a) {
         try {
             var session = storage.getSession(player.getPlayerId());
             var dto = mapAction(a);

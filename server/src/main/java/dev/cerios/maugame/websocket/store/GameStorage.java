@@ -15,9 +15,10 @@ import org.springframework.stereotype.Component;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.UUID;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import static dev.cerios.maugame.websocket.locking.LockUtils.runLocked;
 
 @Component
 @RequiredArgsConstructor
@@ -38,7 +39,7 @@ public class GameStorage {
         return runLocked(
             lock.writeLock(), () -> resolveRandomGame(game -> {
                 log.debug("found game {} for user {}", game.getId(), username);
-                var player = game.registerPlayer(username, distributor::distribute);
+                var player = game.registerPlayer(username, distributor::enqueue);
                 storage.registerGame(player.getPlayerId(), game);
                 log.info("{} registered to random game {}", player, game.getId());
                 return player;
@@ -61,7 +62,7 @@ public class GameStorage {
             }
         );
 
-        var player = ng.game().registerPlayer(username, distributor::distribute);
+        var player = ng.game().registerPlayer(username, distributor::enqueue);
         storage.registerGame(player.getPlayerId(), ng.game());
         return player;
     }
@@ -83,7 +84,7 @@ public class GameStorage {
         newGame.listenStart(this::remove);
 
         try {
-            var player = newGame.registerPlayer(username, distributor::distribute);
+            var player = newGame.registerPlayer(username, distributor::enqueue);
             storage.registerGame(player.getPlayerId(), newGame);
             return player;
         } catch (GameException e) {
@@ -101,7 +102,7 @@ public class GameStorage {
                 if (game.getFreeCapacity() == 0) iterator.remove();
                 return out;
             } catch (GameException e) {
-                log.debug("error handle game {}: ", game.getId(), e);
+                log.debug("error in game {}: {}", game.getId(), e.getMessage());
             }
         }
     }
@@ -135,35 +136,13 @@ public class GameStorage {
         );
     }
 
-    private void runLocked(Lock internalLock, Runnable runnable) {
-        try {
-            internalLock.lock();
-            runnable.run();
-        } finally {
-            internalLock.unlock();
-        }
-    }
-
-    private <R, E extends Throwable> R runLocked(Lock internalLock, CheckedTask<R, E> task) throws E {
-        try {
-            internalLock.lock();
-            return task.run();
-        } finally {
-            internalLock.unlock();
-        }
+    private interface GameHandlerFunction<T> {
+        T handle(Game game) throws GameException;
     }
 
     private record NamedGame(String name, Game game) {
         private NamedGame(Game game) {
             this(null, game);
         }
-    }
-
-    interface GameHandlerFunction<T> {
-        T handle(Game game) throws GameException;
-    }
-
-    interface CheckedTask<R, E extends Throwable> {
-        R run() throws E;
     }
 }
