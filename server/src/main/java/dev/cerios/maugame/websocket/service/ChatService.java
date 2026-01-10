@@ -3,7 +3,7 @@ package dev.cerios.maugame.websocket.service;
 import dev.cerios.maugame.mauengine.exception.GameException;
 import dev.cerios.maugame.mauengine.game.Game;
 import dev.cerios.maugame.mauengine.game.GamePlayer;
-import dev.cerios.maugame.websocket.MauSettings;
+import dev.cerios.maugame.websocket.config.MauSettings;
 import dev.cerios.maugame.websocket.message.ServerMessage;
 import dev.cerios.maugame.websocket.store.PlayerStore;
 import lombok.RequiredArgsConstructor;

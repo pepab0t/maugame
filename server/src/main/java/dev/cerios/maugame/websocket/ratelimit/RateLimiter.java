@@ -4,6 +4,7 @@ import dev.cerios.maugame.websocket.event.DisconnectEvent;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -17,8 +18,17 @@ import java.util.concurrent.ConcurrentHashMap;
 public class RateLimiter {
 
     private final Map<String, Bucket> sessionBuckets = new ConcurrentHashMap<>();
-    private final int tokenCapacity = 20;
-    private final Duration refillEvery = Duration.ofSeconds(3);
+    private final int tokenCapacity;
+    private final Duration refillEvery;
+
+    public RateLimiter(
+        @Value("${maugame.rate-limiter.tokens}") int tokenCapacity,
+        @Value("${maugame.rate-limiter.reset-every-seconds}") int refillEverySeconds
+    ) {
+        this.tokenCapacity = tokenCapacity;
+        this.refillEvery = Duration.ofSeconds(refillEverySeconds);
+    }
+
 
     public boolean canProceed(String sessionId) {
         return getBucket(sessionId).tryConsume(1);

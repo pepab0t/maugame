@@ -1,7 +1,6 @@
 package dev.cerios.maugame.websocket.config;
 
 import dev.cerios.maugame.mauengine.game.GameFactory;
-import dev.cerios.maugame.websocket.MauSettings;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;

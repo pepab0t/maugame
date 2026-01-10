@@ -1,4 +1,4 @@
-package dev.cerios.maugame.websocket;
+package dev.cerios.maugame.websocket.config;
 
 import dev.cerios.maugame.mauengine.game.GameSettings;
 import jakarta.validation.constraints.Max;

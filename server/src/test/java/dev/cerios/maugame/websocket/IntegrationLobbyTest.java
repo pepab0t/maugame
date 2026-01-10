@@ -3,6 +3,7 @@ package dev.cerios.maugame.websocket;
 import com.jayway.jsonpath.JsonPath;
 import dev.cerios.maugame.mauengine.game.GameFactory;
 import dev.cerios.maugame.websocket.clientutils.TestClient;
+import dev.cerios.maugame.websocket.config.MauSettings;
 import dev.cerios.maugame.websocket.store.GameStorage;
 import dev.cerios.maugame.websocket.store.PlayerStore;
 import org.json.JSONException;

@@ -2,6 +2,7 @@ package dev.cerios.maugame.websocket;
 
 import com.jayway.jsonpath.JsonPath;
 import dev.cerios.maugame.websocket.clientutils.TestClient;
+import dev.cerios.maugame.websocket.config.MauSettings;
 import dev.cerios.maugame.websocket.store.GameStorage;
 import dev.cerios.maugame.websocket.store.PlayerStore;
 import lombok.SneakyThrows;
@@ -14,6 +15,7 @@ import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.core.env.Environment;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -24,6 +26,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
+import static dev.cerios.maugame.websocket.PayloadUtils.createChatMessageRequest;
 import static dev.cerios.maugame.websocket.clientutils.JsonFactory.createReadyRequest;
 import static dev.cerios.maugame.websocket.clientutils.TestClient.createMessageMatcher;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,6 +44,8 @@ public class IntegrationGameTest {
     private GameStorage gameStorage;
     @Autowired
     private PlayerStore storage;
+    @Autowired
+    private Environment environment;
 
     static final long TIMEOUT_MS = 2000;
 
@@ -241,6 +246,33 @@ public class IntegrationGameTest {
             while (it.hasNext()) {
                 it.next().close();
             }
+        }
+    }
+
+    @Test
+    void testRateLimiter() throws IOException {
+        int rateLimitMessages = 5;
+        int tokens = Objects.requireNonNull(environment.getProperty("maugame.rate-limiter.tokens", int.class));
+        var client = new TestClient(
+            TestClient.createConnectionUri(port, "user1"),
+            TIMEOUT_MS
+        );
+
+        try (var s = client.handshakeWithCatch().join()) {
+            client.get(2);
+
+            for (int i = 0; i < tokens; i++) {
+                s.sendMessage(createChatMessageRequest("attack number " + i));
+            }
+
+            var successfulChats = client.get(tokens);
+            for (int i = 0; i < rateLimitMessages; i++) {
+                s.sendMessage(createChatMessageRequest("Boom %d!".formatted(i)));
+            }
+            var errors = client.get(rateLimitMessages);
+
+            assertThat(successfulChats).allMatch(m -> m.contains("\"CHAT_MESSAGE\""));
+            assertThat(errors).allMatch(m -> m.contains("\"RateLimitException\""));
         }
     }
 }

@@ -4,7 +4,7 @@ import dev.cerios.maugame.mauengine.exception.GameException;
 import dev.cerios.maugame.mauengine.game.Game;
 import dev.cerios.maugame.mauengine.game.GameFactory;
 import dev.cerios.maugame.mauengine.game.GamePlayer;
-import dev.cerios.maugame.websocket.MauSettings;
+import dev.cerios.maugame.websocket.config.MauSettings;
 import dev.cerios.maugame.websocket.exception.LobbyAlreadyExistsException;
 import dev.cerios.maugame.websocket.exception.NotFoundException;
 import dev.cerios.maugame.websocket.service.MessageDistributor;

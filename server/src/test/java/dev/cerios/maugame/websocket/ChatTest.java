@@ -1,6 +1,7 @@
 package dev.cerios.maugame.websocket;
 
 import dev.cerios.maugame.websocket.clientutils.TestClient;
+import dev.cerios.maugame.websocket.config.MauSettings;
 import dev.cerios.maugame.websocket.message.ServerMessage;
 import dev.cerios.maugame.websocket.store.GameStorage;
 import org.junit.jupiter.api.BeforeEach;
@@ -8,7 +9,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
@@ -16,6 +16,8 @@ import tools.jackson.databind.json.JsonMapper;
 import java.io.IOException;
 import java.util.List;
 
+import static dev.cerios.maugame.websocket.PayloadUtils.createChatHistoryRequest;
+import static dev.cerios.maugame.websocket.PayloadUtils.createChatMessageRequest;
 import static dev.cerios.maugame.websocket.message.ServerMessage.ChatHistoryBody;
 import static dev.cerios.maugame.websocket.message.ServerMessage.ChatMessageBody;
 import static dev.cerios.maugame.websocket.service.ChatService.ChatMessage;
@@ -134,28 +136,5 @@ class ChatTest {
 
     private TestClient createTestClient(String username) {
         return new TestClient(TestClient.createConnectionUri(port, username), defaultTimeout);
-    }
-
-    private TextMessage createChatHistoryRequest() {
-        return new TextMessage("""
-            {
-                "requestType": "CHAT",
-                "chat": {
-                    "chatType": "HISTORY"
-                }
-            }
-            """);
-    }
-
-    private TextMessage createChatMessageRequest(String message) {
-        return new TextMessage("""
-            {
-                "requestType": "CHAT",
-                "chat": {
-                    "chatType": "MESSAGE",
-                    "message": "%s"
-                }
-            }
-            """.formatted(message));
     }
 }

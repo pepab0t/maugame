@@ -1,7 +1,7 @@
 package dev.cerios.maugame.websocket.request;
 
 import dev.cerios.maugame.mauengine.exception.MauEngineBaseException;
-import dev.cerios.maugame.websocket.MauSettings;
+import dev.cerios.maugame.websocket.config.MauSettings;
 import dev.cerios.maugame.websocket.dto.request.PlayRequestDto;
 import dev.cerios.maugame.websocket.exception.InvalidCommandException;
 import dev.cerios.maugame.websocket.exception.NotFoundException;

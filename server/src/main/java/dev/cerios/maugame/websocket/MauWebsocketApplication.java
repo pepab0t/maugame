@@ -1,5 +1,6 @@
 package dev.cerios.maugame.websocket;
 
+import dev.cerios.maugame.websocket.config.MauSettings;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
