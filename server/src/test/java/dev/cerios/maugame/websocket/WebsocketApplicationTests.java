@@ -1,6 +1,7 @@
 package dev.cerios.maugame.websocket;
 
 import dev.cerios.maugame.mauengine.player.PlayerFactory;
+import dev.cerios.maugame.websocket.exception.RateLimitException;
 import dev.cerios.maugame.websocket.request.RequestProcessor;
 import dev.cerios.maugame.websocket.store.PlayerStore;
 import org.junit.jupiter.api.Test;
@@ -27,7 +28,7 @@ class WebsocketApplicationTests {
     }
 
     @Test
-    void testParseRequest() {
+    void testParseRequest() throws RateLimitException {
         String json = """
             {
                 "requestType": "MOVE",

@@ -5,7 +5,9 @@ import dev.cerios.maugame.websocket.MauSettings;
 import dev.cerios.maugame.websocket.dto.request.PlayRequestDto;
 import dev.cerios.maugame.websocket.exception.InvalidCommandException;
 import dev.cerios.maugame.websocket.exception.NotFoundException;
+import dev.cerios.maugame.websocket.exception.RateLimitException;
 import dev.cerios.maugame.websocket.mapper.ExceptionMapper;
+import dev.cerios.maugame.websocket.ratelimit.RateLimiter;
 import dev.cerios.maugame.websocket.service.ChatService;
 import dev.cerios.maugame.websocket.service.GameService;
 import dev.cerios.maugame.websocket.service.MessageDistributor;
@@ -32,11 +34,16 @@ public class RequestProcessor {
     private final Validator validator;
     private final MessageDistributor distributor;
     private final MauSettings settings;
+    private final RateLimiter rateLimiter;
 
-    public void process(String sessionId, String request) {
+    public void process(String sessionId, String request) throws RateLimitException {
+        if (!rateLimiter.canProceed(sessionId)) {
+            throw new RateLimitException();
+        }
         log.trace("processing request for session {}", sessionId);
         var player = storage.getPlayer(sessionId);
         var playerId = player.getPlayerId();
+
         try {
             JsonNode root = jsonMapper.readTree(request);
             var requestType = jsonMapper.convertValue(root.get("requestType"), RequestType.class);
