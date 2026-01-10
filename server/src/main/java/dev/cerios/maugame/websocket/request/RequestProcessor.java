@@ -83,7 +83,6 @@ public class RequestProcessor {
         switch (moveType) {
             case PLAY -> {
                 var dto = objectMapper.convertValue(node, PlayRequestDto.class);
-                // TODO validate dto
                 var constraints = validator.validate(dto);
                 if (!constraints.isEmpty()) {
                     throw new InvalidCommandException("invalid: " + dto.toString());
@@ -102,15 +101,13 @@ public class RequestProcessor {
             case READY -> gameService.setPlayerReady(playerId);
             case UNREADY -> gameService.setPlayerUnready(playerId);
             case REGISTER_NPC -> gameService.registerNpc(playerId);
-            case KICK -> {
-                var username = Optional.ofNullable(node.get("username"))
-                    .map(JsonNode::asText)
-                    .orElse("");
-                if (username.isBlank()) {
-                    throw new InvalidCommandException("Missing field: username (string)");
-                }
-                gameService.kickPlayer(playerId, username);
-            }
+            case KICK -> gameService.kickPlayer(
+                playerId,
+                Optional.ofNullable(node.get("username"))
+                    .map(JsonNode::textValue)
+                    .filter(s -> !s.isBlank())
+                    .orElseThrow(() -> new InvalidCommandException("Missing field: username (string)"))
+            );
             case CHEAT_END -> {
                 if (settings.isCheatingEnabled()) {
                     gameService.endInstantly(playerId);
