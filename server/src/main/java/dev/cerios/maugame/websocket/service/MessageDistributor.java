@@ -1,7 +1,5 @@
 package dev.cerios.maugame.websocket.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.cerios.maugame.mauengine.game.GamePlayer;
 import dev.cerios.maugame.mauengine.game.action.*;
 import dev.cerios.maugame.websocket.dto.action.ActionDto;
@@ -13,6 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
@@ -25,15 +25,15 @@ public class MessageDistributor {
 
     private final ExecutorService executor;
     private final PlayerStore storage;
-    private final ObjectMapper objectMapper;
+    private final JsonMapper jsonMapper;
     private final ActionMapper actionMapper;
 
     private final Lock lock = new ReentrantLock();
 
-    public MessageDistributor(ExecutorService executor, PlayerStore storage, ObjectMapper objectMapper, ActionMapper actionMapper) {
+    public MessageDistributor(ExecutorService executor, PlayerStore storage, JsonMapper jsonMapper, ActionMapper actionMapper) {
         this.executor = executor;
         this.storage = storage;
-        this.objectMapper = objectMapper;
+        this.jsonMapper = jsonMapper;
         this.actionMapper = actionMapper;
     }
 
@@ -71,11 +71,11 @@ public class MessageDistributor {
 
             sendMessage(
                 session,
-                new TextMessage(objectMapper.writeValueAsString(message))
+                new TextMessage(jsonMapper.writeValueAsString(message))
             );
 
             log.debug("send to {} message: {}", playerId, message);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             log.info("error during serialization", e);
         } catch (MauTimeoutException ignore) {
         }
@@ -88,7 +88,7 @@ public class MessageDistributor {
 
             sendMessage(
                 session,
-                new TextMessage(objectMapper.writeValueAsString(Message.createActionMessage(dto)))
+                new TextMessage(jsonMapper.writeValueAsString(Message.createActionMessage(dto)))
             );
 
             switch (a.getType()) {
@@ -97,7 +97,7 @@ public class MessageDistributor {
                 }
             }
             log.debug("send to {} action: {}", player.getUsername(), dto);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             log.info("error during serialization", e);
         } catch (MauTimeoutException ignore) {
         }

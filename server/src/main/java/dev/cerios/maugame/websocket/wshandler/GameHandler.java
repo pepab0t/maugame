@@ -1,6 +1,5 @@
 package dev.cerios.maugame.websocket.wshandler;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.cerios.maugame.mauengine.exception.GameException;
 import dev.cerios.maugame.websocket.exception.MauTimeoutException;
 import dev.cerios.maugame.websocket.exception.ServerException;
@@ -15,6 +14,7 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.ConcurrentWebSocketSessionDecorator;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 
@@ -25,7 +25,7 @@ public class GameHandler extends TextWebSocketHandler {
 
     private final GameService gameService;
     private final RequestProcessor processor;
-    private final ObjectMapper objectMapper;
+    private final JsonMapper jsonMapper;
     private final ParameterParser parameterParser;
 
     @Override
@@ -46,7 +46,7 @@ public class GameHandler extends TextWebSocketHandler {
             log.debug("init complete session: {}", session.getId());
         } catch (ServerException | GameException e) {
             try {
-                session.sendMessage(new TextMessage(objectMapper.writeValueAsString(Message.createErrorMessage(e))));
+                session.sendMessage(new TextMessage(jsonMapper.writeValueAsString(Message.createErrorMessage(e))));
                 session.close();
             } catch (IOException ex) {
                 log.warn("error send message", ex);
@@ -69,7 +69,7 @@ public class GameHandler extends TextWebSocketHandler {
             processor.process(session.getId(), message.getPayload());
         } catch (MauTimeoutException e) {
             try {
-                session.sendMessage(new TextMessage(objectMapper.writeValueAsString(Message.createErrorMessage(e))));
+                session.sendMessage(new TextMessage(jsonMapper.writeValueAsString(Message.createErrorMessage(e))));
                 session.close();
             } catch (IOException ex) {
                 log.warn("error send message", ex);

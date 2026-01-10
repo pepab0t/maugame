@@ -32,7 +32,7 @@ public final class ServerMessage<T extends MessageBody> implements Message {
     }
 
     public static ServerMessage<ChatHistoryBody> ofChatHistory(List<ChatMessage> history) {
-        return new ServerMessage(new ChatHistoryBody(history));
+        return new ServerMessage<>(new ChatHistoryBody(history));
     }
 
     @Getter

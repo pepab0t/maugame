@@ -1,7 +1,5 @@
 package dev.cerios.maugame.websocket;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.cerios.maugame.websocket.clientutils.TestClient;
 import dev.cerios.maugame.websocket.message.ServerMessage;
 import dev.cerios.maugame.websocket.store.GameStorage;
@@ -12,6 +10,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.util.List;
@@ -29,7 +29,7 @@ class ChatTest {
     private final long defaultTimeout = 3000L;
 
     @Autowired
-    private ObjectMapper mapper;
+    private JsonMapper mapper;
 
     @Autowired
     private MauSettings mauSettings;

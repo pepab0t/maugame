@@ -1,7 +1,5 @@
 package dev.cerios.maugame.websocket.request;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.cerios.maugame.mauengine.exception.MauEngineBaseException;
 import dev.cerios.maugame.websocket.MauSettings;
 import dev.cerios.maugame.websocket.dto.request.PlayRequestDto;
@@ -16,6 +14,8 @@ import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.Optional;
 
@@ -24,7 +24,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class RequestProcessor {
 
-    private final ObjectMapper objectMapper;
+    private final JsonMapper jsonMapper;
     private final ExceptionMapper exceptionMapper;
     private final PlayerStore storage;
     private final GameService gameService;
@@ -38,8 +38,8 @@ public class RequestProcessor {
         var player = storage.getPlayer(sessionId);
         var playerId = player.getPlayerId();
         try {
-            JsonNode root = objectMapper.readTree(request);
-            var requestType = objectMapper.convertValue(root.get("requestType"), RequestType.class);
+            JsonNode root = jsonMapper.readTree(request);
+            var requestType = jsonMapper.convertValue(root.get("requestType"), RequestType.class);
 
             switch (requestType) {
                 case MOVE -> processMove(
@@ -61,7 +61,7 @@ public class RequestProcessor {
     }
 
     private void processChat(JsonNode node, String senderId) throws InvalidCommandException {
-        var type = objectMapper.convertValue(
+        var type = jsonMapper.convertValue(
             Optional.ofNullable(node.get("chatType")).orElseThrow(() -> new InvalidCommandException("Missing field: chatType")),
             RequestType.ChatType.class
         );
@@ -69,7 +69,7 @@ public class RequestProcessor {
         switch (type) {
             case MESSAGE -> {
                 var message = Optional.ofNullable(node.get("message"))
-                    .map(JsonNode::textValue)
+                    .flatMap(JsonNode::asStringOpt)
                     .orElseThrow(() -> new InvalidCommandException("Missing field: message (string)"));
                 chatService.sendChatMessage(senderId, message);
             }
@@ -79,10 +79,10 @@ public class RequestProcessor {
     }
 
     private void processMove(JsonNode node, final String playerId) throws InvalidCommandException, MauEngineBaseException {
-        var moveType = objectMapper.convertValue(node.get("moveType"), RequestType.MoveType.class);
+        var moveType = jsonMapper.convertValue(node.get("moveType"), RequestType.MoveType.class);
         switch (moveType) {
             case PLAY -> {
-                var dto = objectMapper.convertValue(node, PlayRequestDto.class);
+                var dto = jsonMapper.convertValue(node, PlayRequestDto.class);
                 var constraints = validator.validate(dto);
                 if (!constraints.isEmpty()) {
                     throw new InvalidCommandException("invalid: " + dto.toString());
@@ -95,7 +95,7 @@ public class RequestProcessor {
     }
 
     private void processControl(JsonNode node, String playerId) throws InvalidCommandException, MauEngineBaseException, NotFoundException {
-        var controlType = objectMapper.convertValue(node.get("controlType"), RequestType.ControlType.class);
+        var controlType = jsonMapper.convertValue(node.get("controlType"), RequestType.ControlType.class);
 
         switch (controlType) {
             case READY -> gameService.setPlayerReady(playerId);
@@ -104,7 +104,7 @@ public class RequestProcessor {
             case KICK -> gameService.kickPlayer(
                 playerId,
                 Optional.ofNullable(node.get("username"))
-                    .map(JsonNode::textValue)
+                    .flatMap(JsonNode::asStringOpt)
                     .filter(s -> !s.isBlank())
                     .orElseThrow(() -> new InvalidCommandException("Missing field: username (string)"))
             );
