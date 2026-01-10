@@ -4,7 +4,7 @@ import lombok.Getter;
 
 import java.time.Instant;
 
-public class ErrorMessage implements Message {
+public final class ErrorMessage implements Message {
     @Getter
     private final MessageType messageType = MessageType.ERROR;
     @Getter

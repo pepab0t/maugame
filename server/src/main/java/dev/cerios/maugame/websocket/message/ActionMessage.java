@@ -8,7 +8,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Getter
 @JsonPropertyOrder({"messageType", "action"})
-public class ActionMessage implements Message {
+public final class ActionMessage implements Message {
     private final MessageType messageType = MessageType.ACTION;
     private final ActionDto action;
 }

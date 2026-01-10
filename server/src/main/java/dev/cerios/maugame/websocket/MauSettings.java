@@ -20,4 +20,8 @@ public class MauSettings implements GameSettings {
     private volatile long turnTimeoutMs = 60_000;
 
     private volatile boolean cheatingEnabled = false;
+
+    @Min(0)
+    @Max(1000)
+    private volatile int maxChatSize = 10;
 }

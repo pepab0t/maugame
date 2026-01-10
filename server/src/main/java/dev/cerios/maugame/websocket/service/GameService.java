@@ -56,7 +56,7 @@ public class GameService {
                 if (otherId.equals(playerId)) {
                     continue;
                 }
-                distributor.enqueueMessage(otherId, ServerMessage.ofReconnect(username));
+                distributor.enqueue(otherId, ServerMessage.ofReconnect(username));
             }
         } catch (GameException e) {
             storage.removePlayerById(playerId);
@@ -79,7 +79,7 @@ public class GameService {
                     if (otherPlayer instanceof NpcPlayer || otherPlayer.getPlayerId().equals(playerId)) {
                         continue;
                     }
-                    distributor.enqueueMessage(otherPlayer.getPlayerId(), disconnectMessage);
+                    distributor.enqueue(otherPlayer.getPlayerId(), disconnectMessage);
                 }
             }
         }

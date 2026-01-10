@@ -4,35 +4,35 @@ import lombok.Getter;
 import lombok.ToString;
 
 import java.time.Instant;
+import java.util.List;
+
+import static dev.cerios.maugame.websocket.message.ServerMessage.MessageBody;
+import static dev.cerios.maugame.websocket.service.ChatService.ChatMessage;
 
 @ToString
 @Getter
-public class ServerMessage implements Message {
+public final class ServerMessage<T extends MessageBody> implements Message {
     private final MessageType messageType = MessageType.SERVER_MESSAGE;
-    private final MessageBody body;
+    private final T body;
 
-    public ServerMessage(MessageBody body) {
+    public ServerMessage(T body) {
         this.body = body;
     }
 
-    public static ServerMessage ofReady(String username) {
-        return new ServerMessage(new ReadyMessageBody(username));
+    public static ServerMessage<InfoMessageBody> ofInfo(String message) {
+        return new ServerMessage<>(new InfoMessageBody(message));
     }
 
-    public static ServerMessage ofUnready(String username) {
-        return new ServerMessage(new UnreadyMessageBody(username));
+    public static ServerMessage<DisconnectMessageBody> ofDisconnect(String username) {return new ServerMessage<>(new DisconnectMessageBody(username));}
+
+    public static ServerMessage<ReconnectMessageBody> ofReconnect(String username) {return new ServerMessage<>(new ReconnectMessageBody(username));}
+
+    public static ServerMessage<ChatMessageBody> ofChatMessage(ChatMessage chatMessage) {
+        return new ServerMessage<>(new ChatMessageBody(chatMessage));
     }
 
-    public static ServerMessage ofInfo(String message) {
-        return new ServerMessage(new InfoMessageBody(message));
-    }
-
-    public static ServerMessage ofDisconnect(String username) {return new ServerMessage(new DisconnectMessageBody(username));}
-
-    public static ServerMessage ofReconnect(String username) {return new ServerMessage(new ReconnectMessageBody(username));}
-
-    public static ServerMessage ofChat(String username, String message) {
-        return new ServerMessage(new ChatMessageBody(username, message));
+    public static ServerMessage<ChatHistoryBody> ofChatHistory(List<ChatMessage> history) {
+        return new ServerMessage(new ChatHistoryBody(history));
     }
 
     @Getter
@@ -52,7 +52,8 @@ public class ServerMessage implements Message {
         DISCONNECT,
         RECONNECT,
         INFO,
-        CHAT
+        CHAT_MESSAGE,
+        CHAT_HISTORY
     }
 
     @Getter
@@ -64,29 +65,6 @@ public class ServerMessage implements Message {
         public InfoMessageBody(String message) {
             super(BodyType.INFO);
             this.message = message;
-        }
-    }
-
-    @Getter
-    @ToString(callSuper = true)
-    public static class ReadyMessageBody extends MessageBody {
-        private final String username;
-
-        public ReadyMessageBody(String username) {
-            super(BodyType.READY);
-            this.username = username;
-        }
-
-    }
-
-    @Getter
-    @ToString(callSuper = true)
-    public static class UnreadyMessageBody extends MessageBody {
-        private final String username;
-
-        public UnreadyMessageBody(String username) {
-            super(BodyType.UNREADY);
-            this.username = username;
         }
     }
 
@@ -115,13 +93,22 @@ public class ServerMessage implements Message {
     @Getter
     @ToString(callSuper = true)
     public static class ChatMessageBody extends MessageBody {
-        private final String username;
-        private final String message;
+        private final ChatMessage message;
 
-        public ChatMessageBody(String username, String message) {
-            super(BodyType.CHAT);
-            this.username = username;
+        public ChatMessageBody(ChatMessage message) {
+            super(BodyType.CHAT_MESSAGE);
             this.message = message;
+        }
+    }
+
+    @Getter
+    @ToString(callSuper = true)
+    public static class ChatHistoryBody extends MessageBody {
+        private final List<ChatMessage> history;
+
+        public ChatHistoryBody(List<ChatMessage> history) {
+            super(BodyType.CHAT_HISTORY);
+            this.history = history;
         }
     }
 }

@@ -6,7 +6,6 @@ import dev.cerios.maugame.mauengine.exception.MauEngineBaseException;
 import dev.cerios.maugame.websocket.MauSettings;
 import dev.cerios.maugame.websocket.dto.request.PlayRequestDto;
 import dev.cerios.maugame.websocket.exception.InvalidCommandException;
-import dev.cerios.maugame.websocket.exception.MauTimeoutException;
 import dev.cerios.maugame.websocket.exception.NotFoundException;
 import dev.cerios.maugame.websocket.mapper.ExceptionMapper;
 import dev.cerios.maugame.websocket.service.ChatService;
@@ -18,7 +17,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.util.Objects;
 import java.util.Optional;
 
 @Component
@@ -35,7 +33,7 @@ public class RequestProcessor {
     private final MessageDistributor distributor;
     private final MauSettings settings;
 
-    public void process(String sessionId, String request) throws MauTimeoutException {
+    public void process(String sessionId, String request) {
         log.trace("processing request for session {}", sessionId);
         var player = storage.getPlayer(sessionId);
         var playerId = player.getPlayerId();
@@ -53,22 +51,31 @@ public class RequestProcessor {
                     playerId
                 );
                 case CHAT -> processChat(
-                    Objects.requireNonNull(
-                        Optional.ofNullable(root.get("message"))
-                            .map(JsonNode::textValue)
-                            .orElseThrow(() -> new InvalidCommandException("Missing field: message"))
-                    ),
+                    Optional.ofNullable(root.get("chat")).orElseThrow(() -> new InvalidCommandException("Missing field: message")),
                     playerId
                 );
             }
         } catch (Exception e) {
-            distributor.enqueueMessage(playerId, exceptionMapper.toErrorResponse(e));
+            distributor.enqueue(playerId, exceptionMapper.toErrorResponse(e));
         }
     }
 
-    private void processChat(String message, String senderId) {
-        if (message.isBlank()) return;
-        chatService.sendChatMessage(senderId, message.strip());
+    private void processChat(JsonNode node, String senderId) throws InvalidCommandException {
+        var type = objectMapper.convertValue(
+            Optional.ofNullable(node.get("chatType")).orElseThrow(() -> new InvalidCommandException("Missing field: chatType")),
+            RequestType.ChatType.class
+        );
+
+        switch (type) {
+            case MESSAGE -> {
+                var message = Optional.ofNullable(node.get("message"))
+                    .map(JsonNode::textValue)
+                    .orElseThrow(() -> new InvalidCommandException("Missing field: message (string)"));
+                chatService.sendChatMessage(senderId, message);
+            }
+            case HISTORY -> chatService.getLastChatMessages(senderId);
+            default -> throw new InvalidCommandException("Invalid chat type");
+        }
     }
 
     private void processMove(JsonNode node, final String playerId) throws InvalidCommandException, MauEngineBaseException {

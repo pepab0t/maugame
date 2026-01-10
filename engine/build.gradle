@@ -12,7 +12,7 @@ dependencies {
     compileOnly libs.lombok
     annotationProcessor libs.lombok
 
-    implementation libs.collections4
+    api libs.collections4
     implementation libs.slf4j
     implementation libs.ulid
 

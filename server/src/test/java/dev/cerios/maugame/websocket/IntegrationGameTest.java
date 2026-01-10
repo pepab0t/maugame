@@ -100,7 +100,7 @@ public class IntegrationGameTest {
 
     @Test
     public void whenPlayerDisconnectsFromRunningGameAndProvidesPlayerIdInNewConnection_thenShouldBeReconnected() throws IOException, JSONException {
-        var messageMatcher = createMessageMatcher("READY", "DISCONNECT", "RECONNECT", "START_GAME", "playerId");
+        var messageMatcher = createMessageMatcher("READY", "DISCONNECT", "RECONNECT", "START_GAME", "username");
         var client1 = new TestClient(TestClient.createConnectionUri(port, "user1"), messageMatcher, TIMEOUT_MS);
         var client2 = new TestClient(TestClient.createConnectionUri(port, "user2"), messageMatcher, TIMEOUT_MS);
         var client3 = new TestClient(TestClient.createConnectionUri(port, "user3"), messageMatcher, TIMEOUT_MS);
@@ -183,7 +183,7 @@ public class IntegrationGameTest {
             m.contains("DISCONNECT") ||
             m.contains("RECONNECT") ||
             m.contains("START_GAME") ||
-            m.contains("playerId");
+            m.contains("username");
         var client1 = new TestClient(TestClient.createConnectionUri(port, "user1"), messageMatcher, TIMEOUT_MS);
         var client2 = new TestClient(TestClient.createConnectionUri(port, "user2"), messageMatcher, TIMEOUT_MS);
         var client3 = new TestClient(TestClient.createConnectionUri(port, "user3"), messageMatcher, TIMEOUT_MS);
