@@ -20,6 +20,7 @@ dependencies {
     implementation libs.springboot.websocket
     implementation libs.springboot.validation
     implementation libs.mapstruct
+    implementation 'com.bucket4j:bucket4j-core:8.10.1'
 
     testImplementation libs.springboot.test
     testCompileOnly libs.lombok

@@ -100,7 +100,7 @@ public class IntegrationGameTest {
 
     @Test
     public void whenPlayerDisconnectsFromRunningGameAndProvidesPlayerIdInNewConnection_thenShouldBeReconnected() throws IOException, JSONException {
-        var messageMatcher = createMessageMatcher("READY", "DISCONNECT", "RECONNECT", "START_GAME", "username");
+        var messageMatcher = createMessageMatcher("READY", "DISCONNECT", "RECONNECT", "START_GAME", "REGISTER_PLAYER");
         var client1 = new TestClient(TestClient.createConnectionUri(port, "user1"), messageMatcher, TIMEOUT_MS);
         var client2 = new TestClient(TestClient.createConnectionUri(port, "user2"), messageMatcher, TIMEOUT_MS);
         var client3 = new TestClient(TestClient.createConnectionUri(port, "user3"), messageMatcher, TIMEOUT_MS);
@@ -112,13 +112,13 @@ public class IntegrationGameTest {
         var readyRequest = new TextMessage(createReadyRequest());
 
         try {
-            session1 = client1.handshake().join();
-            session2 = client2.handshake().join();
-            session3 = client3.handshake().join();
+            session1 = client1.handshakeWithCatch().join();
+            session2 = client2.handshakeWithCatch().join();
+            session3 = client3.handshakeWithCatch().join();
 
-            var playerId1 = JsonPath.<String>read(client1.get(), "$.action.playerDto.playerId");
+            var playerId1 = JsonPath.<String>read(client1.getReceivedMessages().getFirst(), "$.action.playerDto.playerId");
+            client1.get(2);
             client2.get();
-            client3.get();
 
             session1.sendMessage(readyRequest);
             session2.sendMessage(readyRequest);

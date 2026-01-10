@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.cerios.maugame.websocket.clientutils.TestClient;
 import dev.cerios.maugame.websocket.message.ServerMessage;
+import dev.cerios.maugame.websocket.store.GameStorage;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -31,6 +33,15 @@ class ChatTest {
 
     @Autowired
     private MauSettings mauSettings;
+
+    @Autowired
+    private GameStorage gameStorage;
+
+    @BeforeEach
+    void setUp() {
+        gameStorage.clear();
+        mauSettings.restoreDefaults();
+    }
 
     @Test
     void shouldSendChatMessageToPlayersInGame() throws IOException {
