@@ -23,7 +23,7 @@ import org.springframework.web.socket.WebSocketSession;
 @Slf4j
 public class GameService {
     private final PlayerStore storage;
-    private final MessageDistributor distributor;
+    private final MessageSender distributor;
     private final GameStorage gameStorage;
 
     public void registerPlayerToNewCustomLobby(

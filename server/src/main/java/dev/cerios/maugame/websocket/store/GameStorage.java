@@ -7,7 +7,7 @@ import dev.cerios.maugame.mauengine.game.GamePlayer;
 import dev.cerios.maugame.websocket.config.MauSettings;
 import dev.cerios.maugame.websocket.exception.LobbyAlreadyExistsException;
 import dev.cerios.maugame.websocket.exception.NotFoundException;
-import dev.cerios.maugame.websocket.service.MessageDistributor;
+import dev.cerios.maugame.websocket.service.MessageSender;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -26,7 +26,7 @@ import static dev.cerios.maugame.websocket.locking.LockUtils.runLocked;
 public class GameStorage {
 
     private final GameFactory gameFactory;
-    private final MessageDistributor distributor;
+    private final MessageSender distributor;
     private final PlayerStore storage;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
 

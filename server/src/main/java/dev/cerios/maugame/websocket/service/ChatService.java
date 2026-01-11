@@ -30,7 +30,7 @@ public class ChatService {
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
     private final PlayerStore playerStore;
-    private final MessageDistributor distributor;
+    private final MessageSender distributor;
     private final MauSettings settings;
 
     public void sendChatMessage(String playerId, String message) {

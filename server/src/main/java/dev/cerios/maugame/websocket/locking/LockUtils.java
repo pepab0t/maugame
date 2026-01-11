@@ -25,6 +25,17 @@ public class LockUtils {
         }
     }
 
+    public static Runnable wrapLock(Lock lock, Runnable runnable) {
+        return () -> {
+            try {
+                lock.lock();
+                runnable.run();
+            } finally {
+                lock.unlock();
+            }
+        };
+    }
+
     public interface CheckedTask<R, E extends Throwable> {
         R run() throws E;
     }

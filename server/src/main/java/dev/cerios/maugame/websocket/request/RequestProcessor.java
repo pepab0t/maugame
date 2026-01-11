@@ -10,7 +10,7 @@ import dev.cerios.maugame.websocket.mapper.ExceptionMapper;
 import dev.cerios.maugame.websocket.ratelimit.RateLimiter;
 import dev.cerios.maugame.websocket.service.ChatService;
 import dev.cerios.maugame.websocket.service.GameService;
-import dev.cerios.maugame.websocket.service.MessageDistributor;
+import dev.cerios.maugame.websocket.service.MessageSender;
 import dev.cerios.maugame.websocket.store.PlayerStore;
 import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +32,7 @@ public class RequestProcessor {
     private final GameService gameService;
     private final ChatService chatService;
     private final Validator validator;
-    private final MessageDistributor distributor;
+    private final MessageSender distributor;
     private final MauSettings settings;
     private final RateLimiter rateLimiter;
 

@@ -19,9 +19,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static dev.cerios.maugame.websocket.locking.LockUtils.wrapLock;
+
 @Service
 @Slf4j
-public class MessageDistributor {
+public class MessageSender {
 
     private final ExecutorService executor;
     private final PlayerStore storage;
@@ -30,7 +32,12 @@ public class MessageDistributor {
 
     private final Lock lock = new ReentrantLock();
 
-    public MessageDistributor(ExecutorService executor, PlayerStore storage, JsonMapper jsonMapper, ActionMapper actionMapper) {
+    public MessageSender(
+        ExecutorService executor,
+        PlayerStore storage,
+        JsonMapper jsonMapper,
+        ActionMapper actionMapper
+    ) {
         this.executor = executor;
         this.storage = storage;
         this.jsonMapper = jsonMapper;
@@ -46,23 +53,12 @@ public class MessageDistributor {
     }
 
     private void enqueueInternal(String playerId, Runnable runnable) {
-        try {
-            lock.lock();
-            var ps = storage.getPlayerSources(playerId);
-            if (ps == null)
-                return;
-            ps.queue().add(runnable);
-            executor.execute(() -> {
-                try {
-                    ps.lock().lock();
-                    ps.queue().remove().run();
-                } finally {
-                    ps.lock().unlock();
-                }
-            });
-        } finally {
-            lock.unlock();
-        }
+        var ps = storage.getPlayerSources(playerId);
+        if (ps == null)
+            return;
+        var q = ps.queue();
+        q.add(runnable);
+        executor.execute(wrapLock(ps.lock(), () -> q.remove().run()));
     }
 
     private void enqueueMessage(String playerId, Message message) {
@@ -105,12 +101,9 @@ public class MessageDistributor {
 
     private void sendMessage(WebSocketSession session, TextMessage message) {
         try {
-            lock.lock();
             session.sendMessage(message);
         } catch (IOException | IllegalStateException exception) {
-            log.trace("error sending message {}", message.getPayload(), exception);
-        } finally {
-            lock.unlock();
+            log.debug("error sending message {}", message.getPayload(), exception);
         }
     }
 

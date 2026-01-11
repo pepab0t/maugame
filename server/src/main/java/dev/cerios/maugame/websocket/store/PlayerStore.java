@@ -78,9 +78,9 @@ public class PlayerStore {
     }
 
     public void registerSession(GamePlayer player, WebSocketSession session) {
-        var sessionFuture = playerToSession.computeIfAbsent(player.getPlayerId(), __ -> new CompletableFuture<>());
-        var playerFuture = sessionToPlayer.computeIfAbsent(session.getId(), __ -> new CompletableFuture<>());
-        playerLocks.computeIfAbsent(player.getPlayerId(), __ -> PlayerConcurrentSources.create());
+        var sessionFuture = playerToSession.computeIfAbsent(player.getPlayerId(), _ -> new CompletableFuture<>());
+        var playerFuture = sessionToPlayer.computeIfAbsent(session.getId(), _ -> new CompletableFuture<>());
+        playerLocks.computeIfAbsent(player.getPlayerId(), _ -> PlayerConcurrentSources.create());
         sessionFuture.complete(session);
         playerFuture.complete(player);
         log.info("{} associated with session {}", player, session.getId());
