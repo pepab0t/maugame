@@ -34,7 +34,7 @@ public class GameHandler extends TextWebSocketHandler {
     private final ApplicationEventPublisher publisher;
 
     @Override
-    public void afterConnectionEstablished(WebSocketSession s) {
+    public void afterConnectionEstablished(@NonNull WebSocketSession s) {
         final var session = new ConcurrentWebSocketSessionDecorator(s, 10_000, 4096);
 
         log.debug("established session: {}", session.getId());

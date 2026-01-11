@@ -4,7 +4,6 @@ import dev.cerios.maugame.websocket.exception.InvalidHandshakeException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -27,11 +26,11 @@ public class ParameterParser {
         var isPrivate = safelyConvert(attributes.get("private"), x -> x.equals("true"), false);
 
         var cp = new ConnectionParameters(
-                username,
-                Optional.ofNullable(playerId),
-                Optional.ofNullable(lobbyName),
-                isNew,
-                isPrivate
+            username,
+            Optional.ofNullable(playerId),
+            Optional.ofNullable(lobbyName),
+            isNew,
+            isPrivate
         );
 
         validateConnectionParams(cp);
@@ -40,7 +39,7 @@ public class ParameterParser {
     }
 
     private <T> T safelyConvert(Object obj, Function<Object, T> converter, T defaultValue) {
-        if  (obj == null) {
+        if (obj == null) {
             return defaultValue;
         }
         return converter.apply(obj);
@@ -59,11 +58,11 @@ public class ParameterParser {
     }
 
     public record ConnectionParameters(
-            @NotBlank @Size(max = 32) String username,
-            Optional<@Size(max = 100) String> playerId,
-            Optional<@Size(max = 50) String> lobbyName,
-            Boolean isNew,
-            Boolean isPrivate
+        @NotBlank @Size(max = 32) String username,
+        Optional<@Size(max = 100) String> playerId,
+        Optional<@Size(max = 50) String> lobbyName,
+        Boolean isNew,
+        Boolean isPrivate
     ) {
         public Operation decideOperation() {
             if (playerId.isPresent()) {
