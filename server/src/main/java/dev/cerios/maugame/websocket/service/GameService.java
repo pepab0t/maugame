@@ -6,6 +6,7 @@ import dev.cerios.maugame.mauengine.exception.GameException;
 import dev.cerios.maugame.mauengine.exception.MauEngineBaseException;
 import dev.cerios.maugame.mauengine.game.GamePlayer;
 import dev.cerios.maugame.mauengine.player.NpcPlayer;
+import dev.cerios.maugame.websocket.event.DisconnectEvent;
 import dev.cerios.maugame.websocket.exception.LobbyAlreadyExistsException;
 import dev.cerios.maugame.websocket.exception.NotFoundException;
 import dev.cerios.maugame.websocket.message.ServerMessage;
@@ -13,6 +14,7 @@ import dev.cerios.maugame.websocket.store.GameStorage;
 import dev.cerios.maugame.websocket.store.PlayerStore;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.web.socket.WebSocketSession;
 
@@ -64,8 +66,9 @@ public class GameService {
         }
     }
 
-    public void disconnectPlayer(String sessionId) {
-        var pair = storage.removePlayerBySession(sessionId);
+    @EventListener
+    public void disconnectPlayer(DisconnectEvent event) {
+        var pair = storage.removePlayerBySession(event.sessionId());
         var player = pair.player();
         var gameOpt = pair.game();
         if (gameOpt.isPresent()) {

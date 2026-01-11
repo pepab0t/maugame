@@ -10,6 +10,7 @@ import dev.cerios.maugame.websocket.request.RequestProcessor;
 import dev.cerios.maugame.websocket.service.GameService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
@@ -59,13 +60,8 @@ public class GameHandler extends TextWebSocketHandler {
     }
 
     @Override
-    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
-        try {
-            gameService.disconnectPlayer(session.getId());
-            publisher.publishEvent(new DisconnectEvent(session.getId()));
-        } catch (Exception e) {
-            log.debug("error disconnect player: {}", e.getMessage());
-        }
+    public void afterConnectionClosed(@NonNull WebSocketSession session, @NonNull CloseStatus status) {
+        publisher.publishEvent(new DisconnectEvent(session.getId()));
     }
 
     @Override
