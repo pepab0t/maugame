@@ -7,7 +7,6 @@ import dev.cerios.maugame.mauengine.exception.MauEngineBaseException;
 import dev.cerios.maugame.mauengine.game.GamePlayer;
 import dev.cerios.maugame.mauengine.player.NpcPlayer;
 import dev.cerios.maugame.websocket.event.DisconnectEvent;
-import dev.cerios.maugame.websocket.exception.LobbyAlreadyExistsException;
 import dev.cerios.maugame.websocket.exception.NotFoundException;
 import dev.cerios.maugame.websocket.message.ServerMessage;
 import dev.cerios.maugame.websocket.store.GameStorage;
@@ -26,33 +25,13 @@ public class GameService {
     private final MessageSender distributor;
     private final GameStorage gameStorage;
 
-    public void registerPlayerToNewCustomLobby(
-        String username,
-        WebSocketSession session,
-        String gameName,
-        boolean isPrivate
-    ) throws LobbyAlreadyExistsException {
-        var player = gameStorage.registerToNew(username, gameName, isPrivate);
-        storage.registerSession(player, session);
-        logPlayerAssignment(player, session);
-    }
-
-    public void registerPlayerToExistingCustomLobby(String username, WebSocketSession session, String lobbyName) throws NotFoundException, GameException {
-        var player = gameStorage.registerToNamed(username, lobbyName);
-        storage.registerSession(player, session);
-        logPlayerAssignment(player, session);
-    }
-
-    public void registerPlayer(String username, WebSocketSession session) throws GameException {
-        var player = gameStorage.registerToRandom(username);
-        storage.registerSession(player, session);
-    }
-
-    public void reconnectPlayer(String username, WebSocketSession session, String playerId) throws NotFoundException {
+    public GamePlayer reconnectPlayer(String username, String playerId) throws NotFoundException {
         try {
             var game = storage.getGame(playerId).orElseThrow(() -> new NotFoundException("Game not found for given player."));
-            storage.registerReplaceSession(game.getPlayer(playerId), session);
-            game.sendCurrentStateTo(playerId, p -> p.getUsername().equals(username));
+            var player = game.getPlayer(playerId);
+            if (!player.getUsername().equals(username)) {
+                throw new NotFoundException("Player(id='%s', username='%s') not found".formatted(playerId, username));
+            }
             for (var p : game.getAllPlayers()) {
                 var otherId = p.getPlayerId();
                 if (otherId.equals(playerId)) {
@@ -60,6 +39,7 @@ public class GameService {
                 }
                 distributor.enqueue(otherId, ServerMessage.ofReconnect(username));
             }
+            return player;
         } catch (GameException e) {
             storage.removePlayerById(playerId);
             throw new NotFoundException(e.getMessage());
