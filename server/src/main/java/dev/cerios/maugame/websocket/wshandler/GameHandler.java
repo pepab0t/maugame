@@ -1,13 +1,13 @@
 package dev.cerios.maugame.websocket.wshandler;
 
 import dev.cerios.maugame.mauengine.exception.GameException;
+import dev.cerios.maugame.mauengine.game.GamePlayer;
 import dev.cerios.maugame.websocket.event.DisconnectEvent;
 import dev.cerios.maugame.websocket.exception.MauTimeoutException;
 import dev.cerios.maugame.websocket.exception.RateLimitException;
-import dev.cerios.maugame.websocket.exception.ServerException;
 import dev.cerios.maugame.websocket.message.Message;
 import dev.cerios.maugame.websocket.request.RequestProcessor;
-import dev.cerios.maugame.websocket.service.GameService;
+import dev.cerios.maugame.websocket.store.PlayerStore;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
@@ -21,42 +21,34 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
+import java.util.Optional;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class GameHandler extends TextWebSocketHandler {
 
-    private final GameService gameService;
+    private final PlayerStore store;
     private final RequestProcessor processor;
     private final JsonMapper jsonMapper;
-    private final ParameterParser parameterParser;
     private final ApplicationEventPublisher publisher;
 
     @Override
-    public void afterConnectionEstablished(@NonNull WebSocketSession s) {
+    public void afterConnectionEstablished(@NonNull WebSocketSession s) throws GameException {
         final var session = new ConcurrentWebSocketSessionDecorator(s, 10_000, 4096);
+        var attributes = session.getAttributes();
+        var player = Optional.ofNullable(attributes.get("gamePlayer"))
+            .map(GamePlayer.class::cast)
+            .orElseThrow(() -> new RuntimeException("Game player not found in session attributes (unexpected)."));
+        var isReconnect = Optional.ofNullable(attributes.get("reconnect"))
+            .map(x -> Boolean.parseBoolean(x.toString()))
+            .orElse(false);
 
-        log.debug("established session: {}", session.getId());
-
-        try {
-            var cp = parameterParser.parse(session.getAttributes());
-            switch (cp.decideOperation()) {
-                case CONNECT_RANDOM -> gameService.registerPlayer(cp.username(), session);
-                case CONNECT_CUSTOM -> gameService.registerPlayerToExistingCustomLobby(cp.username(), session, cp.lobbyName().get());
-                case CREATE -> gameService.registerPlayerToNewCustomLobby(cp.username(), session, cp.lobbyName().get(), cp.isPrivate());
-                case RECONNECT -> gameService.reconnectPlayer(cp.username(), session, cp.playerId().get());
-                default -> throw new ServerException("Unknown operation");
-            }
-            log.debug("init complete session: {}", session.getId());
-        } catch (ServerException | GameException e) {
-            try {
-                session.sendMessage(new TextMessage(jsonMapper.writeValueAsString(Message.createErrorMessage(e))));
-                session.close();
-            } catch (IOException ex) {
-                log.warn("error send message", ex);
-            }
-        }
+        if (isReconnect) {
+            store.registerReplaceSession(player, session);
+            var game = store.getGame(player.getPlayerId()).orElseThrow();
+            game.sendCurrentStateTo(player.getPlayerId());
+        } else store.registerSession(player, session);
     }
 
     @Override

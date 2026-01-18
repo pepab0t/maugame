@@ -19,7 +19,6 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
-import java.util.function.Predicate;
 
 @Slf4j
 class GameCore {
@@ -176,13 +175,12 @@ class GameCore {
         return cardManager.peekPile();
     }
 
-    public void sendCurrentStateTo(String playerId, Predicate<GamePlayer> playerMatcher) throws GameException {
+    public void sendCurrentStateTo(String playerId) throws GameException {
         if (playerContext.getPlayers() instanceof PlayerRunningState players) {
             var player = players.getPlayer(playerId);
-            if (!playerMatcher.test(player))
-                throw new GameException("No matching player.");
             List<Action> actions = new LinkedList<>();
 
+            actions.add(new PlayersAction(players.getPlayers()));
             actions.add(new StartAction(id.toString()));
             actions.add(new StartPileAction(getPileCard()));
             for (Player p : players.getPlayers()) {

@@ -13,7 +13,6 @@ import lombok.ToString;
 import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 
 
 @ToString(onlyExplicitlyIncluded = true)
@@ -206,11 +205,11 @@ public class Game {
         }
     }
 
-    public void sendCurrentStateTo(String playerId, Predicate<GamePlayer> playerMatcher) throws GameException {
+    public void sendCurrentStateTo(String playerId) throws GameException {
         var l = lock.readLock();
         try {
             l.lock();
-            core.sendCurrentStateTo(playerId, playerMatcher);
+            core.sendCurrentStateTo(playerId);
         } finally {
             l.unlock();
         }

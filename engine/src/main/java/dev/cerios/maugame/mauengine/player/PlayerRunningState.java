@@ -109,7 +109,7 @@ public class PlayerRunningState implements PlayerStorage {
     }
 
     @Override
-    public Collection<Player> getPlayers() {
+    public List<Player> getPlayers() {
         return players.valueList();
     }
 

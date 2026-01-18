@@ -20,14 +20,14 @@ public class ParameterParser {
 
     public ConnectionParameters parse(Map<String, Object> attributes) throws InvalidHandshakeException {
         var username = safelyConvert(attributes.get("user"), this::mapString, null);
-        var playerId = safelyConvert(attributes.get("player"), this::mapString, null);
+        var reconnect = safelyConvert(attributes.get("reconnect"), x -> x.equals("true"), false);
         var lobbyName = safelyConvert(attributes.get("lobby"), this::mapString, null);
         var isNew = safelyConvert(attributes.get("new"), x -> x.equals("true"), false);
         var isPrivate = safelyConvert(attributes.get("private"), x -> x.equals("true"), false);
 
         var cp = new ConnectionParameters(
             username,
-            Optional.ofNullable(playerId),
+            reconnect,
             Optional.ofNullable(lobbyName),
             isNew,
             isPrivate
@@ -59,13 +59,13 @@ public class ParameterParser {
 
     public record ConnectionParameters(
         @NotBlank @Size(max = 32) String username,
-        Optional<@Size(max = 100) String> playerId,
+        boolean reconnect,
         Optional<@Size(max = 50) String> lobbyName,
         Boolean isNew,
         Boolean isPrivate
     ) {
         public Operation decideOperation() {
-            if (playerId.isPresent()) {
+            if (reconnect) {
                 return Operation.RECONNECT;
             }
             if (lobbyName.isPresent()) {
