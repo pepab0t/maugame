@@ -17,10 +17,18 @@ dependencies {
     annotationProcessor libs.mapstruct.processor
 
     implementation project(":engine")
+    implementation libs.springboot.web
     implementation libs.springboot.websocket
     implementation libs.springboot.validation
+    implementation libs.springboot.security
+    implementation libs.springboot.jpa
     implementation libs.mapstruct
     implementation 'com.bucket4j:bucket4j-core:8.10.1'
+    implementation 'io.jsonwebtoken:jjwt-api:0.13.0'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.13.0'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.13.0'
+    // Source: https://mvnrepository.com/artifact/org.postgresql/postgresql
+    implementation 'org.postgresql:postgresql:42.7.9'
 
     testImplementation libs.springboot.test
     testCompileOnly libs.lombok

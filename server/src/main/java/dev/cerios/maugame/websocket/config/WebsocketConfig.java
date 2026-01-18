@@ -15,12 +15,13 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 public class WebsocketConfig implements WebSocketConfigurer {
 
     private final GameHandler gameHandler;
+    private final QueryParamInterceptor queryParamInterceptor;
     private final GameRegisterInterceptor gameRegisterInterceptor;
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(gameHandler, "/game")
             .setAllowedOrigins("*")
-            .addInterceptors(new QueryParamInterceptor(), gameRegisterInterceptor);
+            .addInterceptors(queryParamInterceptor, gameRegisterInterceptor);
     }
 }
