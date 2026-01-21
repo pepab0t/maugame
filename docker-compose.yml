@@ -1,0 +1,27 @@
+services:
+  db:
+    image: postgres:16
+    container_name: mau_database
+    environment:
+      POSTGRES_USER: mauUser
+      POSTGRES_PASSWORD: mauUser
+      POSTGRES_DB: maugame
+    ports:
+      - "5432:5432"
+    networks:
+      - app-network
+  maugame:
+    image: maugame:latest
+    build:
+      dockerfile: ./Dockerfile
+    ports:
+      - "8080:8080"
+    networks:
+      - app-network
+    environment:
+      DB_URI: "jdbc:postgresql://db:5432/maugame"
+      DB_USER: "mauUser"
+      DB_PASSWORD: "mauUser"
+
+networks:
+  app-network:

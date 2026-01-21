@@ -3,7 +3,6 @@ package dev.cerios.maugame.websocket.wshandler;
 import dev.cerios.maugame.websocket.exception.InvalidHandshakeException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -58,7 +57,7 @@ public class ParameterParser {
     }
 
     public record ConnectionParameters(
-        @NotBlank @Size(max = 32) String username,
+        @Size(max = 32) String username,
         boolean reconnect,
         Optional<@Size(max = 50) String> lobbyName,
         Boolean isNew,
