@@ -3,6 +3,12 @@
 > __request__ = websocket message __player -> server__\
 > __message__ = websocket message __server -> player__
 
+Run everything:
+
+```bash
+docker compose up -d --build --force-recreate
+```
+
 ## Connection
 
 There is few connection options available.\

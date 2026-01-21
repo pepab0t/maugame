@@ -12,6 +12,8 @@ services:
       - app-network
   maugame:
     image: maugame:latest
+    depends_on:
+      - db
     build:
       dockerfile: ./Dockerfile
     ports:
