@@ -6,7 +6,7 @@ import dev.cerios.maugame.websocket.dto.request.PlayRequestDto;
 import dev.cerios.maugame.websocket.exception.InvalidCommandException;
 import dev.cerios.maugame.websocket.exception.NotFoundException;
 import dev.cerios.maugame.websocket.exception.RateLimitException;
-import dev.cerios.maugame.websocket.mapper.ExceptionMapper;
+import dev.cerios.maugame.websocket.message.ErrorMessage;
 import dev.cerios.maugame.websocket.ratelimit.RateLimiter;
 import dev.cerios.maugame.websocket.service.ChatService;
 import dev.cerios.maugame.websocket.service.GameService;
@@ -27,7 +27,6 @@ import java.util.Optional;
 public class RequestProcessor {
 
     private final JsonMapper jsonMapper;
-    private final ExceptionMapper exceptionMapper;
     private final PlayerStore storage;
     private final GameService gameService;
     private final ChatService chatService;
@@ -63,7 +62,7 @@ public class RequestProcessor {
                 );
             }
         } catch (Exception e) {
-            distributor.enqueue(playerId, exceptionMapper.toErrorResponse(e));
+            distributor.enqueue(playerId, new ErrorMessage(e));
         }
     }
 

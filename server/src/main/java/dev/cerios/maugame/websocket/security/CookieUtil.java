@@ -1,8 +1,10 @@
 package dev.cerios.maugame.websocket.security;
 
+import dev.cerios.maugame.websocket.exception.security.AuthException;
 import jakarta.servlet.http.Cookie;
 import lombok.experimental.UtilityClass;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpHeaders;
 
 import java.util.Arrays;
@@ -35,6 +37,17 @@ public class CookieUtil {
         cookie.setHttpOnly(true);
         cookie.setAttribute("SameSite", "Lax");
         return cookie;
+    }
+
+    public static String findCookieValue(@Nullable Cookie[] cookies, String cookieName) throws AuthException {
+        return Optional.ofNullable(cookies)
+            .stream()
+            .flatMap(Arrays::stream)
+            .filter(cookie -> cookieName.equals(cookie.getName()))
+            .map(Cookie::getValue)
+            .filter(value -> !value.isBlank())
+            .findFirst()
+            .orElseThrow(() -> new AuthException("Missing cookie: %s.".formatted(cookieName)));
     }
 
     public static @NonNull Map<String, String> parseCookies(HttpHeaders headers) {

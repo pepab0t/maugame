@@ -256,7 +256,7 @@ public class PlayerRunningState implements PlayerStorage {
         }
 
         if (currentPlayer instanceof NpcPlayer npc) {
-            npcTurnListener.accept(npc);
+            executor.schedule(() -> npcTurnListener.accept(npc), 1, TimeUnit.SECONDS);
         }
     }
 
@@ -266,6 +266,7 @@ public class PlayerRunningState implements PlayerStorage {
         try {
             l.lock();
             var activeCount = activeCounter.decrementAndGet();
+            futures.remove(player.getPlayerId());
             players.remove(player.getPlayerId());
             actionPublisher.publishAction(player, new DisqualifiedAction());
             actionPublisher.publishActionToAll(new RemovePlayerAction(player));

@@ -3,10 +3,10 @@ package dev.cerios.maugame.websocket.interceptor;
 import dev.cerios.maugame.mauengine.exception.GameException;
 import dev.cerios.maugame.websocket.exception.InvalidHandshakeException;
 import dev.cerios.maugame.websocket.exception.ServerException;
+import dev.cerios.maugame.websocket.exception.security.AuthException;
 import dev.cerios.maugame.websocket.security.JwtUtil;
 import dev.cerios.maugame.websocket.service.GameService;
 import dev.cerios.maugame.websocket.store.GameStorage;
-import dev.cerios.maugame.websocket.wshandler.ParameterParser;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static dev.cerios.maugame.websocket.security.CookieUtil.*;
+import static dev.cerios.maugame.websocket.wshandler.ParameterParser.*;
 
 @Component
 @RequiredArgsConstructor
@@ -36,27 +37,25 @@ public class GameRegisterInterceptor implements HandshakeInterceptor {
         @NonNull ServerHttpResponse response,
         @NonNull WebSocketHandler wsHandler,
         @NonNull Map<String, Object> attributes
-    )
-        throws Exception {
-        var params = (ParameterParser.ConnectionParameters) attributes.get("params");
+    ) {
+        var params = (ConnectionParameters) attributes.get("params");
         var cookies = parseCookies(request.getHeaders());
 
-        var username = Optional.ofNullable(cookies.get(TOKEN_COOKIE_NAME))
-            .map(t -> jwtUtil.parse(t).getUsername())
-            .or(() -> Optional.ofNullable(params.username()))
-            .orElseThrow(() -> new InvalidHandshakeException("Missing username"));
-
         try {
+            var username = getToken(cookies)
+                .map(JwtUtil.ParsedToken::getUsername)
+                .or(params::username)
+                .orElseThrow(() -> new InvalidHandshakeException("Missing cookies or user parameter."));
             var player = switch (params.decideOperation()) {
-                case CONNECT_RANDOM -> gameStorage.registerToRandom(username);
-                case CONNECT_CUSTOM -> gameStorage.registerToNamed(username, params.lobbyName().get());
-                case CREATE -> gameStorage.registerToNew(username, params.lobbyName().get(), params.isPrivate());
-                case RECONNECT -> {
+                case ConnectRandomData _ -> gameStorage.registerToRandom(username);
+                case ConnectCustomData(String lobby) -> gameStorage.registerToNamed(username, lobby);
+                case CreateData(String lobby, boolean isPrivate) -> gameStorage.registerToNew(username, lobby, isPrivate);
+                case ReconnectData _ -> {
                     var playerId = cookies.get("playerId");
                     if (playerId == null) {
                         throw new InvalidHandshakeException("No cookie `playerId` found");
                     }
-                    yield gameService.reconnectPlayer(params.username(), playerId);
+                    yield gameService.reconnectPlayer(username, playerId);
                 }
             };
             attributes.put("gamePlayer", player);
@@ -65,10 +64,18 @@ public class GameRegisterInterceptor implements HandshakeInterceptor {
             } else {
                 throw new RuntimeException("no servlet response");
             }
-            return true;
-        } catch (GameException | ServerException _) {
-            return false;
+        } catch (GameException | ServerException e) {
+            attributes.put("exception", e);
         }
+        return true;
+    }
+
+    private Optional<JwtUtil.ParsedToken> getToken(Map<String, String> cookies) throws AuthException {
+        var token = cookies.get(TOKEN_COOKIE_NAME);
+        if (token == null) {
+            return Optional.empty();
+        }
+        return Optional.of(jwtUtil.parse(token));
     }
 
     @Override

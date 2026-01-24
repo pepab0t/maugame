@@ -20,7 +20,7 @@ public class RefreshToken {
     @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     private MauUser user;
 
-    public RefreshToken(String token) {
-        this.token = token;
+    public RefreshToken(MauUser user) {
+        this.user = user;
     }
 }
