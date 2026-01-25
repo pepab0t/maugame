@@ -1,14 +1,17 @@
 package dev.cerios.maugame.websocket.security;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtParser;
-import io.jsonwebtoken.Jwts;
+import dev.cerios.maugame.websocket.config.MauSettings;
+import dev.cerios.maugame.websocket.exception.security.AuthException;
+import dev.cerios.maugame.websocket.exception.security.AuthExpiredException;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
 @Component
@@ -18,27 +21,39 @@ public class JwtUtil {
         .getBytes(StandardCharsets.UTF_8));
     private final JwtParser jwtParser = Jwts.parser().verifyWith(SECRET_KEY).build();
 
-    public ParsedToken parse(String token) {
-        return new ParsedToken(jwtParser.parseSignedClaims(token)
-            .getPayload());
+    private final MauSettings settings;
+
+    public JwtUtil(MauSettings settings) {
+        this.settings = settings;
+    }
+
+    public ParsedToken parse(String token) throws AuthException {
+        try {
+            return new ParsedToken(jwtParser.parseSignedClaims(token)
+                .getPayload());
+        } catch (ExpiredJwtException e) {
+            throw new AuthExpiredException(e.getMessage());
+        } catch (JwtException e) {
+            throw new AuthException(e.getMessage(), e);
+        }
     }
 
     public String generateToken(String username) {
-        long now = System.currentTimeMillis();
+        var now = Instant.now();
         return Jwts.builder()
             .subject(username)
-            .issuedAt(new Date(now))
-            .expiration(new Date(now + 1000 * 60 * 15)) // 15 minutes
+            .issuedAt(Date.from(now))
+            .expiration(Date.from(now.plusSeconds(settings.getTokenDurationSeconds()))) // 15 minutes
             .signWith(SECRET_KEY)
             .compact();
     }
 
     public String generateRefreshToken(String username) {
-        long now = System.currentTimeMillis();
+        var now = Instant.now();
         return Jwts.builder()
             .subject(username)
-            .issuedAt(new Date(now))
-            .expiration(new Date(now + 1000L * 60 * 60 * 24 * 30)) // 30 days
+            .issuedAt(Date.from(now))
+            .expiration(Date.from(now.plus(settings.getRefreshTokenDurationDays(), ChronoUnit.DAYS)))
             .signWith(SECRET_KEY)
             .compact();
     }

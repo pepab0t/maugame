@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: maugame-backend
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: ${DB_URI:jdbc:postgresql://localhost:5432/maugame}
+    username: ${DB_USER:mauUser}
+    password: ${DB_PASSWORD:mauUser}
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+logging:
+  level:
+    dev.cerios: debug
+    sql: debug
+
+maugame:
+  max-players: ${MAU_MAX_PLAYERS:5}
+  cheating-enabled: ${MAU_ChEATING_ENABLED:false}
+  rate-limiter:
+    tokens: 20
+    reset-every-seconds: 20
+  token-duration-seconds: 900
+  refresh-token-duration-days: 30

@@ -25,7 +25,7 @@ public class ParameterParser {
         var isPrivate = safelyConvert(attributes.get("private"), x -> x.equals("true"), false);
 
         var cp = new ConnectionParameters(
-            username,
+            Optional.ofNullable(username),
             reconnect,
             Optional.ofNullable(lobbyName),
             isNew,
@@ -57,34 +57,37 @@ public class ParameterParser {
     }
 
     public record ConnectionParameters(
-        @Size(max = 32) String username,
+        Optional<@Size(max = 32) String> username,
         boolean reconnect,
         Optional<@Size(max = 50) String> lobbyName,
         Boolean isNew,
         Boolean isPrivate
     ) {
-        public Operation decideOperation() {
+
+        public ConnectionParameters {
+            lobbyName = lobbyName.map(String::strip);
+        }
+
+        public OperationData decideOperation() {
             if (reconnect) {
-                return Operation.RECONNECT;
+                return new ReconnectData();
             }
-            if (lobbyName.isPresent()) {
-                if (isNew) {
-                    if (isPrivate) {
-                        return Operation.CREATE;
-                    }
-                    return Operation.CREATE;
-                } else {
-                    return Operation.CONNECT_CUSTOM;
-                }
-            }
-            return Operation.CONNECT_RANDOM;
+            return lobbyName.<OperationData>map(name -> isNew
+                    ? new CreateData(name, isPrivate)
+                    : new ConnectCustomData(name))
+                .orElseGet(ConnectRandomData::new);
         }
     }
 
-    public enum Operation {
-        RECONNECT,
-        CONNECT_RANDOM,
-        CONNECT_CUSTOM,
-        CREATE;
+    public sealed interface OperationData
+        permits ReconnectData, ConnectRandomData, ConnectCustomData, CreateData {
     }
+
+    public record ReconnectData() implements OperationData {}
+
+    public record ConnectRandomData() implements OperationData {}
+
+    public record ConnectCustomData(String lobbyName) implements OperationData {}
+
+    public record CreateData(String lobbyName, boolean isPrivate) implements OperationData {}
 }

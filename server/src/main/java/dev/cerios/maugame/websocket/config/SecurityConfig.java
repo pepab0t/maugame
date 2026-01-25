@@ -30,6 +30,7 @@ public class SecurityConfig {
             .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin)) // allow frames
             .authorizeHttpRequests(customizer -> customizer
                 .requestMatchers("/h2-console", "/h2-console/**", "/api/auth/**").permitAll()
+                .requestMatchers("/api/time-left").permitAll()
                 .requestMatchers(
                     "/swagger",
                     "/swagger-ui/**",

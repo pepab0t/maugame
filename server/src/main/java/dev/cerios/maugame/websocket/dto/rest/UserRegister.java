@@ -1,4 +1,4 @@
-package dev.cerios.maugame.websocket.dto;
+package dev.cerios.maugame.websocket.dto.rest;
 
 public record UserRegister(
     String username,

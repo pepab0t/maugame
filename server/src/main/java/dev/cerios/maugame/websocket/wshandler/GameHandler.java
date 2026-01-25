@@ -5,6 +5,7 @@ import dev.cerios.maugame.mauengine.game.GamePlayer;
 import dev.cerios.maugame.websocket.event.DisconnectEvent;
 import dev.cerios.maugame.websocket.exception.MauTimeoutException;
 import dev.cerios.maugame.websocket.exception.RateLimitException;
+import dev.cerios.maugame.websocket.message.ErrorMessage;
 import dev.cerios.maugame.websocket.message.Message;
 import dev.cerios.maugame.websocket.request.RequestProcessor;
 import dev.cerios.maugame.websocket.store.PlayerStore;
@@ -34,9 +35,20 @@ public class GameHandler extends TextWebSocketHandler {
     private final ApplicationEventPublisher publisher;
 
     @Override
-    public void afterConnectionEstablished(@NonNull WebSocketSession s) throws GameException {
+    public void afterConnectionEstablished(@NonNull WebSocketSession s) throws GameException, IOException {
         final var session = new ConcurrentWebSocketSessionDecorator(s, 10_000, 4096);
         var attributes = session.getAttributes();
+
+        var handshakeException = attributes.get("exception");
+        if (handshakeException != null) {
+            session.sendMessage(new TextMessage(
+                    jsonMapper.writeValueAsString(new ErrorMessage((Exception) handshakeException))
+                )
+            );
+            session.close(CloseStatus.BAD_DATA);
+            return;
+        }
+
         var player = Optional.ofNullable(attributes.get("gamePlayer"))
             .map(GamePlayer.class::cast)
             .orElseThrow(() -> new RuntimeException("Game player not found in session attributes (unexpected)."));

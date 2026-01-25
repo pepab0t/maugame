@@ -199,3 +199,40 @@ and possible query parameters:
   "messageType": "SERVER_MESSAGE"
 }
 ```
+
+## How to work with __Authentication__
+
+REST endpoints related to authentication are on path `/api/auth/*`.
+Auth plays a role in websocket handshake. If any auth error occurs, handshake is completed successfully,
+error message is sent through the websocket session and session is immediatelly closed.\
+Common game authentication workflow may look as following
+
+- (register) login the user `POST /api/auth/register` and `POST /api/auth/login/`
+    - tokens are stored in the _httpOnly_ cookies
+- try to open websocket connection (`user` query param can be omitted, since the authentication identity is represented
+  with the jwt token)
+- if success -> play the game
+- if you receive error as the first message with name `AuthExpiredException`, that means jwt expired and needs to be
+  refreshed.
+  ```json
+  {
+    "exceptionBody": {
+        "name": "AuthExpiredException",
+        "message": "expired ...",
+        "timestamp": "2026-01-25T19:51:47.396389Z"
+    },
+    "messageType": "ERROR"
+  }
+  ```
+- call endpoint `POST /api/auth/refresh`
+    - your refresh token stored in cookies is automatically sent with the request (if any)
+    - operation generates new tokens and store them in the cookies again
+- retry websocket connection
+
+### Good to know
+
+- Retrieve jwt remaining time until expiry:
+  > GET /api/time-left
+- Logout
+    - this operation removes all the auth cookies
+  > POST /api/auth/logout
