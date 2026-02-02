@@ -101,11 +101,6 @@ public class GameService {
         game.playCardMove(playerId, card, nextColor);
     }
 
-    public void drawCard(String playerId) throws MauEngineBaseException {
-        var game = storage.getGame(playerId).orElseThrow(() -> new RuntimeException("No game"));
-        game.playDrawMove(playerId);
-    }
-
     public void pass(String playerId) throws MauEngineBaseException {
         var game = storage.getGame(playerId).orElseThrow(() -> new RuntimeException("No game"));
         game.playPassMove(playerId);

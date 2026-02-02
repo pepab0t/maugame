@@ -25,11 +25,7 @@ public class AutoPlayHandler {
         var effect = core.getGameEffect();
 
         findPossibleCardPlay(player, pileCard, effect)
-            .orElse(
-                effect == null
-                    ? toRunnable(() -> core.performDraw(player.getPlayerId()))
-                    : toRunnable(() -> core.performPass(player.getPlayerId()))
-            )
+            .orElse(toRunnable(() -> core.performPass(player.getPlayerId())))
             .run();
     }
 
@@ -37,10 +33,13 @@ public class AutoPlayHandler {
         var cardComparer = cardManager.getCardComparer();
         var hand = player.getHand();
 
-        Predicate<Card> cardPredicate = effect == null
+        Predicate<Card> cardPredicate = effect == GameEffect.NoEffect.INSTANCE
             ? card -> cardComparer.compare(pileCard, card)
             : card -> card.type() == pileCard.type();
         var cardsToPlay = hand.stream().filter(cardPredicate).toList();
+
+        log.debug("All cards: {}", hand);
+        log.debug("Cards to play: {}", cardsToPlay);
 
         if (cardsToPlay.isEmpty()) return Optional.empty();
 

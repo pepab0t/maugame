@@ -95,8 +95,7 @@ public class RequestProcessor {
                 }
                 gameService.playCard(playerId, dto.card(), dto.nextColor());
             }
-            case DRAW -> gameService.drawCard(playerId);
-            case PASS -> gameService.pass(playerId);
+            case DRAW -> gameService.pass(playerId);
         }
     }
 

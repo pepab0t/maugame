@@ -58,16 +58,6 @@ public class Game {
         }
     }
 
-    public void playDrawMove(final String playerId) throws MauEngineBaseException {
-        var l = lock.writeLock();
-        try {
-            l.lock();
-            core.performDraw(playerId);
-        } finally {
-            l.unlock();
-        }
-    }
-
     public void playPassMove(final String playerId) throws MauEngineBaseException {
         var l = lock.writeLock();
         try {
