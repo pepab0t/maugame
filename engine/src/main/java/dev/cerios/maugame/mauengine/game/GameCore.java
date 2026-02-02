@@ -6,9 +6,9 @@ import dev.cerios.maugame.mauengine.card.CardType;
 import dev.cerios.maugame.mauengine.card.Color;
 import dev.cerios.maugame.mauengine.exception.*;
 import dev.cerios.maugame.mauengine.game.action.*;
-import dev.cerios.maugame.mauengine.game.effect.DrawEffect;
 import dev.cerios.maugame.mauengine.game.effect.GameEffect;
-import dev.cerios.maugame.mauengine.game.effect.SkipEffect;
+import dev.cerios.maugame.mauengine.game.effect.GameEffect.DrawEffect;
+import dev.cerios.maugame.mauengine.game.effect.GameEffect.SkipEffect;
 import dev.cerios.maugame.mauengine.player.ActionPublisher;
 import dev.cerios.maugame.mauengine.player.Player;
 import dev.cerios.maugame.mauengine.player.PlayerContext;
@@ -20,13 +20,15 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
+import static dev.cerios.maugame.mauengine.game.effect.GameEffect.NoEffect;
+
 @Slf4j
 class GameCore {
     private final CardManager cardManager;
     private final PlayerContext playerContext;
 
     @Getter
-    private volatile GameEffect gameEffect = null;
+    private volatile GameEffect gameEffect = NoEffect.INSTANCE;
     private final UUID id;
 
     GameCore(
@@ -69,55 +71,35 @@ class GameCore {
 
         List<Action> actions = new LinkedList<>();
 
-        if (gameEffect == null) {
-            if (!cardManager.playCard(card, nextColor))
-                throw new PlayerMoveException("Illegal card to play %s.".formatted(card));
-            switch (card.type()) {
-                case ACE -> gameEffect = new SkipEffect();
-                case SEVEN -> gameEffect = new DrawEffect(2);
+        switch (gameEffect) {
+            case GameEffect.DrawEffect(int count) -> {
+                if (card.type() != CardType.SEVEN)
+                    throw new PlayerMoveException("Illegal card to play %s.".formatted(card));
+                if (!cardManager.playCard(card, null))
+                    throw new PlayerMoveException("Illegal card to play %s.".formatted(card));
+                gameEffect = new GameEffect.DrawEffect(count + 2);
+                actions.add(new PlayCardAction(player, card));
             }
-            actions.add(new PlayCardAction(player, card, nextColor));
-        } else {
-            switch (gameEffect) {
-                case DrawEffect(int count) -> {
-                    if (card.type() != CardType.SEVEN)
-                        throw new PlayerMoveException("Illegal card to play %s.".formatted(card));
-                    if (!cardManager.playCard(card, null))
-                        throw new PlayerMoveException("Illegal card to play %s.".formatted(card));
-                    gameEffect = new DrawEffect(count + 2);
-                    actions.add(new PlayCardAction(player, card));
+            case GameEffect.SkipEffect _ -> {
+                if (card.type() != CardType.ACE)
+                    throw new PlayerMoveException("Illegal card to play %s.".formatted(card));
+                if (!cardManager.playCard(card, null))
+                    throw new PlayerMoveException("Illegal card to play %s.".formatted(card));
+                actions.add(new PlayCardAction(player, card));
+            }
+            case NoEffect _ -> {
+                if (!cardManager.playCard(card, nextColor))
+                    throw new PlayerMoveException("Illegal card to play %s.".formatted(card));
+                switch (card.type()) {
+                    case ACE -> gameEffect = new GameEffect.SkipEffect();
+                    case SEVEN -> gameEffect = new GameEffect.DrawEffect(2);
                 }
-                case SkipEffect ignore -> {
-                    if (card.type() != CardType.ACE)
-                        throw new PlayerMoveException("Illegal card to play %s.".formatted(card));
-                    if (!cardManager.playCard(card, null))
-                        throw new PlayerMoveException("Illegal card to play %s.".formatted(card));
-                    actions.add(new PlayCardAction(player, card));
-                }
+                actions.add(new PlayCardAction(player, card, nextColor));
             }
         }
         actions.forEach(publisher::publishActionToAll);
         playerHand.remove(cardIndex);
         return playerHand.isEmpty();
-    }
-
-    public void performDraw(final String playerId) throws MauEngineBaseException {
-        var players = getRunningState();
-        if (players.approveWinCandidates())
-            players.getPlayerForPlay(playerId, this::drawInternal);
-    }
-
-    private boolean drawInternal(ActionPublisher publisher, Player player) throws PlayerMoveException, CardException {
-        if (gameEffect != null)
-            throw new PlayerMoveException("Cannot draw when when game effect is active.");
-
-        var drawnCard = cardManager.draw();
-        player.getHand().add(drawnCard);
-
-        publisher.publishActionExcludingPlayer(new HiddenDrawAction(player, 1), player.getPlayerId());
-
-        publisher.publishAction(player, new DrawAction(List.of(drawnCard)));
-        return false;
     }
 
     public void performPass(final String playerId) throws MauEngineBaseException {
@@ -126,7 +108,7 @@ class GameCore {
             players.getPlayerForPlay(playerId, this::passInternal);
     }
 
-    private boolean passInternal(ActionPublisher publisher, Player player) throws PlayerMoveException, CardException {
+    private boolean passInternal(ActionPublisher publisher, Player player) throws CardException {
         switch (gameEffect) {
             case DrawEffect(int count) -> {
                 var drawnCards = cardManager.draw(count);
@@ -137,16 +119,21 @@ class GameCore {
                 );
                 publisher.publishAction(player, new DrawAction(drawnCards));
             }
-            case SkipEffect ignore -> publisher.publishActionToAll(new PassAction(player));
-            case null -> throw new PlayerMoveException("cannot pass without active game effect");
+            case SkipEffect _ -> publisher.publishActionToAll(new PassAction(player));
+            case NoEffect _ -> {
+                var drawnCard = cardManager.draw();
+                player.getHand().add(drawnCard);
+                publisher.publishActionExcludingPlayer(new HiddenDrawAction(player, 1), player.getPlayerId());
+                publisher.publishAction(player, new DrawAction(List.of(drawnCard)));
+            }
         }
-        gameEffect = null;
+        gameEffect = NoEffect.INSTANCE;
         return false;
     }
 
     private void start(UUID gameId) {
         var players = playerContext.getPlayers();
-        gameEffect = null;
+        gameEffect = NoEffect.INSTANCE;
         cardManager.refresh();
 
         for (Player player : players.getPlayers()) {
