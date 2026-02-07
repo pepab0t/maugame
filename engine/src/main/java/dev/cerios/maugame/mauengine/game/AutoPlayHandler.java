@@ -25,7 +25,10 @@ public class AutoPlayHandler {
         var effect = core.getGameEffect();
 
         findPossibleCardPlay(player, pileCard, effect)
-            .orElse(toRunnable(() -> core.performPass(player.getPlayerId())))
+            .orElse(toRunnable(() -> {
+                log.debug("[{} ({})] Performing pass.", player.getPlayerId(), player.getUsername());
+                core.performPassNoPoke(player.getPlayerId());
+            }))
             .run();
     }
 
@@ -38,16 +41,17 @@ public class AutoPlayHandler {
             : card -> card.type() == pileCard.type();
         var cardsToPlay = hand.stream().filter(cardPredicate).toList();
 
-        log.debug("All cards: {}", hand);
-        log.debug("Cards to play: {}", cardsToPlay);
+        log.debug("[{} ({})] All cards: {}", player.getPlayerId(), player.getUsername(), hand);
+        log.debug("[{} ({})] Cards to play: {}", player.getPlayerId(), player.getUsername(), cardsToPlay);
 
         if (cardsToPlay.isEmpty()) return Optional.empty();
 
         var cardToPlay = cardsToPlay.get(random.nextInt(cardsToPlay.size()));
+        log.debug("[{} ({})] Chosen to play: {}", player.getPlayerId(), player.getUsername(), cardToPlay);
         return Optional.of(
             cardToPlay.type() == CardType.QUEEN ?
-                toRunnable(() -> core.performPlayCard(player.getPlayerId(), cardToPlay, mostOccuredColor(hand))) :
-                toRunnable(() -> core.performPlayCard(player.getPlayerId(), cardToPlay))
+                toRunnable(() -> core.performPlayCardNoPoke(player.getPlayerId(), cardToPlay, mostOccuredColor(hand))) :
+                toRunnable(() -> core.performPlayCardNoPoke(player.getPlayerId(), cardToPlay, null))
         );
     }
 
@@ -70,7 +74,7 @@ public class AutoPlayHandler {
         return colors.entrySet().stream()
             .max(Comparator.comparingInt(Map.Entry::getValue))
             .map(Map.Entry::getKey)
-            .orElseThrow();
+            .orElse(Color.values()[random.nextInt(Color.values().length)]);
     }
 
     @FunctionalInterface

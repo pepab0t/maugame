@@ -18,7 +18,7 @@ import java.util.UUID;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import static dev.cerios.maugame.websocket.locking.LockUtils.runLocked;
+import static dev.cerios.maugame.mauengine.locking.LockUtils.runLocked;
 
 @Component
 @RequiredArgsConstructor

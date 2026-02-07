@@ -6,14 +6,13 @@ import dev.cerios.maugame.mauengine.exception.NotSupportedOperation;
 import dev.cerios.maugame.mauengine.game.GameEventListener;
 import dev.cerios.maugame.mauengine.game.action.*;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.map.ListOrderedMap;
 
 import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.function.Consumer;
@@ -24,16 +23,15 @@ public class PlayerRunningState implements PlayerStorage {
     private final AtomicInteger activeCounter;
 
     private final UUID gameId;
-    private final ListOrderedMap<String, Player> players = new ListOrderedMap<>();
+    private final ListOrderedMap<String, PlayerWrapper> players = new ListOrderedMap<>();
     private int nextIndex;
     private int scorePoints;
     private final List<String> playerRank = new LinkedList<>();
-    private final Deque<Player> winCandidates = new LinkedList<>();
+    private final Deque<PlayerWrapper> winCandidates = new LinkedList<>();
     private final Consumer<Collection<Player>> stateSwitcher;
 
     private final Random random;
     private final ScheduledExecutorService executor;
-    private final Map<String, FutureWithTimeout> futures = new HashMap<>();
 
     private final long turnTimeoutMs;
 
@@ -44,7 +42,8 @@ public class PlayerRunningState implements PlayerStorage {
 
     private final Map<String, Integer> scores;
 
-    private final List<Consumer<Player>> timeoutListeners = new LinkedList<>();
+    private final List<Consumer<Player>> disqualifyListeners = new LinkedList<>();
+    private final List<Consumer<Player>> turnTimeoutListeners = new LinkedList<>();
     private final Consumer<NpcPlayer> npcTurnListener;
 
     PlayerRunningState(
@@ -86,7 +85,7 @@ public class PlayerRunningState implements PlayerStorage {
     ) {
         this.gameId = gameId;
         this.random = random;
-        this.actionPublisher = builder.withPlayers(players::valueList).build();
+        this.actionPublisher = builder.withPlayers(this::getPlayers).build();
         this.turnTimeoutMs = turnTimeoutMs;
         this.stateSwitcher = stateSwitcher;
         this.globalLock = globalLock;
@@ -95,30 +94,24 @@ public class PlayerRunningState implements PlayerStorage {
 
         this.players.putAll(
             playerCollection.stream()
-                .collect(LinkedHashMap::new, (map, p) -> map.put(p.getPlayerId(), p), LinkedHashMap::putAll)
+                .collect(LinkedHashMap::new, (map, p) -> map.put(p.getPlayerId(), new PlayerWrapper(p)), LinkedHashMap::putAll)
         );
         this.activeCounter = new AtomicInteger(this.players.size());
         this.executor = executor;
         this.npcTurnListener = npcTurnListener;
     }
 
-    record FutureWithTimeout(Future<?> future, long expireAtMs) {
-        void cancel() {
-            future.cancel(true);
-        }
-    }
-
     @Override
     public List<Player> getPlayers() {
-        return players.valueList();
+        return players.valueList().stream().map(PlayerWrapper::getPlayer).toList();
     }
 
     public Player getCurrentPlayer() {
-        return players.getValue((nextIndex - 1) % players.size());
+        return players.getValue((nextIndex - 1) % players.size()).getPlayer();
     }
 
     @Override
-    public Player registerPlayer(String username, GameEventListener eventListener) throws GameException {
+    public Player registerPlayer(String username, GameEventListener eventListener) {
         throw new NotSupportedOperation("Registering player with username is not supported at this state.");
     }
 
@@ -132,32 +125,53 @@ public class PlayerRunningState implements PlayerStorage {
         R apply(T t, U u) throws MauEngineBaseException;
     }
 
+    public void getPlayerForPlayWithoutPoke(String playerId, BiFunctionChecked<ActionPublisher, Player, Boolean> playerFunction) throws MauEngineBaseException {
+        getPlayerForPlay(playerId, playerFunction, null);
+    }
+
     public void getPlayerForPlay(String playerId, BiFunctionChecked<ActionPublisher, Player, Boolean> playerFunction) throws MauEngineBaseException {
-        var player = getPlayer(playerId);
+        getPlayerForPlay(playerId, playerFunction, this::poke);
+    }
+
+    private void getPlayerForPlay(
+        String playerId,
+        BiFunctionChecked<ActionPublisher, Player, Boolean> playerFunction,
+        Consumer<String> playerIdConsumer
+    ) throws MauEngineBaseException {
+        if (playerIdConsumer != null) poke(playerId);
+        var playerWrapper = getPlayerWrapper(playerId);
+        var player = playerWrapper.getPlayer();
         if (!player.getPlayerId().equals(getCurrentPlayer().getPlayerId())) {
-            throw new GameException("It's not a player's turn.");
+            throw new GameException("It's not a %s's turn.".formatted(player.getUsername()));
         }
-        poke(playerId);
 
         var shouldWin = playerFunction.apply(actionPublisher, player);
 
         if (shouldWin)
-            winCandidates.add(player);
+            winCandidates.add(playerWrapper);
 
         shiftPlayer();
     }
 
-    @Override
-    public Player getPlayer(String playerId) throws GameException {
-        var player = players.get(playerId);
-        if (player == null) {
+    private PlayerWrapper getPlayerWrapper(String playerId) throws GameException {
+        var wrapper = players.get(playerId);
+        if (wrapper == null) {
             throw new GameException("No player with id `" + playerId + "` was found.");
         }
-        return player;
+        return wrapper;
     }
 
-    public void listenTimeout(Consumer<Player> listener) {
-        timeoutListeners.add(listener);
+    @Override
+    public Player getPlayer(String playerId) throws GameException {
+        return getPlayerWrapper(playerId).getPlayer();
+    }
+
+    public void listenDisqualify(Consumer<Player> listener) {
+        disqualifyListeners.add(listener);
+    }
+
+    public void listenTurnTimeout(Consumer<Player> listener) {
+        turnTimeoutListeners.add(listener);
     }
 
     /**
@@ -173,6 +187,7 @@ public class PlayerRunningState implements PlayerStorage {
 
     public void endInstantly() {
         players.valueList().stream()
+            .map(PlayerWrapper::getPlayer)
             .filter(p -> !p.isFinished())
             .forEach(p -> {
                 playerRank.add(p.getUsername());
@@ -188,16 +203,17 @@ public class PlayerRunningState implements PlayerStorage {
     /**
      * Make player a winner and deactivates him.
      *
-     * @param player to transform to winner
+     * @param playerWrapper to transform to winner
      * @return whether game should continue
      */
-    private boolean win(Player player) {
+    private boolean win(PlayerWrapper playerWrapper) {
+        playerWrapper.getFuture().cancel();
+        var player = playerWrapper.getPlayer();
         player.deactivate();
         player.getHand().clear();
         activeCounter.decrementAndGet();
         playerRank.add(player.getUsername());
         addScore(player.getUsername());
-        Optional.ofNullable(futures.remove(player.getPlayerId())).ifPresent(FutureWithTimeout::cancel);
 
         var gameContinues = activeCounter.get() > 1;
         if (gameContinues)
@@ -241,32 +257,44 @@ public class PlayerRunningState implements PlayerStorage {
     }
 
     private void shiftPlayer() {
-        var currentPlayer = findNextPlayer();
+        var playerWrapper = findNextPlayer();
+        var currentPlayer = playerWrapper.getPlayer();
         var expireTime = System.currentTimeMillis() + turnTimeoutMs;
-        var timeoutFuture = executor.schedule(() -> timeoutPlayer(currentPlayer), turnTimeoutMs, TimeUnit.MILLISECONDS);
-        var previousFuture = futures.put(currentPlayer.getPlayerId(), new FutureWithTimeout(timeoutFuture, expireTime));
-        if (previousFuture != null) previousFuture.cancel();
+
+        if (currentPlayer instanceof NpcPlayer npc) {
+            executor.schedule(() -> npcTurnListener.accept(npc), 1, TimeUnit.SECONDS);
+        } else {
+            final Runnable timeoutRunnable = playerWrapper.getTimeouts() < 3
+                ? () -> handleTimeout(playerWrapper)
+                : () -> disqualifyPlayer(currentPlayer);
+
+            var timeoutFuture = executor.schedule(timeoutRunnable, turnTimeoutMs, TimeUnit.MILLISECONDS);
+            playerWrapper.getFuture().cancel();
+            playerWrapper.setFuture(new FutureWithTimeout(timeoutFuture, expireTime));
+        }
         actionPublisher.publishActionToAll(new PlayerShiftAction(currentPlayer, expireTime));
 
         log.debug("{}: {}'s turn", gameId, currentPlayer.getUsername());
 
         var firstCandidate = winCandidates.peek();
-        if (firstCandidate != null && firstCandidate.getPlayerId().equals(currentPlayer.getPlayerId())) {
+        if (firstCandidate != null && firstCandidate.getPlayer().getPlayerId().equals(currentPlayer.getPlayerId())) {
             winCandidates.removeFirst();
-        }
-
-        if (currentPlayer instanceof NpcPlayer npc) {
-            executor.schedule(() -> npcTurnListener.accept(npc), 1, TimeUnit.SECONDS);
         }
     }
 
-    private void timeoutPlayer(Player player) {
-        log.debug("{}: {} timed out", gameId, player.getUsername());
+    private void handleTimeout(PlayerWrapper playerWrapper) {
+        playerWrapper.increaseTimeoutCount();
+        var player = playerWrapper.getPlayer();
+        log.debug("({}) {}'s timeout number: {}", gameId, player.getUsername(), playerWrapper.getTimeouts());
+        turnTimeoutListeners.forEach(l -> l.accept(playerWrapper.getPlayer()));
+    }
+
+    private void disqualifyPlayer(Player player) {
+        log.debug("{}: {} timed out - disqualify", gameId, player.getUsername());
         final var l = globalLock.writeLock();
         try {
             l.lock();
             var activeCount = activeCounter.decrementAndGet();
-            futures.remove(player.getPlayerId());
             players.remove(player.getPlayerId());
             actionPublisher.publishAction(player, new DisqualifiedAction());
             actionPublisher.publishActionToAll(new RemovePlayerAction(player));
@@ -275,7 +303,7 @@ public class PlayerRunningState implements PlayerStorage {
             } else {
                 shiftPlayer();
             }
-            for (var listener : timeoutListeners) {
+            for (var listener : disqualifyListeners) {
                 listener.accept(player);
             }
         } finally {
@@ -284,7 +312,10 @@ public class PlayerRunningState implements PlayerStorage {
     }
 
     private void poke(String playerId) {
-        Optional.ofNullable(futures.remove(playerId)).ifPresent(FutureWithTimeout::cancel);
+        Optional.ofNullable(players.get(playerId)).ifPresent(w -> {
+            w.resetTimeouts();
+            w.getFuture().cancel();
+        });
     }
 
     /**
@@ -294,33 +325,69 @@ public class PlayerRunningState implements PlayerStorage {
      * @return last expire time if possible
      */
     public long getLastExpire(String playerId) {
-        return Optional.ofNullable(futures.get(playerId))
-            .map(FutureWithTimeout::expireAtMs)
-            .orElse(-1L);
+        return Optional.ofNullable(players.get(playerId))
+            .map(w -> w.getFuture().expireAtMs())
+            .orElse(PlayerWrapper.defaultFuture.expireAtMs());
     }
 
     public List<String> getPlayerRank() {
         return List.copyOf(playerRank);
     }
 
-    private Player findNextPlayer() {
+    private PlayerWrapper findNextPlayer() {
         if (activeCounter.get() < 1)
             throw new RuntimeException("There is no next player");
 
-        Player nextPlayer;
+        PlayerWrapper nextPlayer;
         do {
             nextPlayer = players.getValue(nextIndex++ % players.size());
-        } while (nextPlayer.isFinished());
+        } while (nextPlayer.getPlayer().isFinished());
         return nextPlayer;
     }
 
     private void loseLastActivePlayer() {
-        var losingPlayer = findNextPlayer();
+        var losingPlayerWrapper = findNextPlayer();
+        losingPlayerWrapper.getFuture().cancel();
+        var losingPlayer = losingPlayerWrapper.getPlayer();
         losingPlayer.getHand().clear();
         losingPlayer.deactivate();
-        Optional.ofNullable(futures.remove(losingPlayer.getPlayerId())).ifPresent(FutureWithTimeout::cancel);
         activeCounter.decrementAndGet();
         playerRank.add(losingPlayer.getUsername());
         addScore(losingPlayer.getUsername());
+    }
+
+    record FutureWithTimeout(Future<?> future, long expireAtMs) {
+        void cancel() {
+            future.cancel(true);
+        }
+    }
+
+    @RequiredArgsConstructor
+    static class PlayerWrapper {
+        @Getter
+        private final Player player;
+        private int timeouts = 0;
+        @Setter
+        private volatile FutureWithTimeout future;
+
+        private static final FutureWithTimeout defaultFuture = new FutureWithTimeout(CompletableFuture.completedFuture(null), -1);
+
+        public synchronized void increaseTimeoutCount() {
+            timeouts++;
+        }
+
+        public synchronized int getTimeouts() {
+            return timeouts;
+        }
+
+        public synchronized void resetTimeouts() {
+            timeouts = 0;
+        }
+
+        public synchronized FutureWithTimeout getFuture() {
+            return future == null
+                ? defaultFuture
+                : future;
+        }
     }
 }

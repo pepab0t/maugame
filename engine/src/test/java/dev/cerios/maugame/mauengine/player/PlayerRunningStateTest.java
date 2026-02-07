@@ -320,13 +320,13 @@ class PlayerRunningStateTest {
     }
 
     @Test
-    void listenTimeout_ShouldAddListener() {
+    void listenDisqualify_ShouldAddListener() {
         // Given
         playerRunningState = createPlayerRunningStateWithMockExecutor();
         Consumer<Player> listener = mock(Consumer.class);
 
         // When
-        assertDoesNotThrow(() -> playerRunningState.listenTimeout(listener));
+        assertDoesNotThrow(() -> playerRunningState.listenDisqualify(listener));
 
         // Then
         // Verify by triggering a timeout scenario
@@ -421,7 +421,7 @@ class PlayerRunningStateTest {
         playerRunningState = createPlayerRunningStateWithMockExecutor();
         playerRunningState.initializePlayer();
         Consumer<Player> timeoutListener = mock(Consumer.class);
-        playerRunningState.listenTimeout(timeoutListener);
+        playerRunningState.listenDisqualify(timeoutListener);
 
         playerRunningState.getPlayerForPlay(playerRunningState.getCurrentPlayer().getPlayerId(), (__, __1) -> false);
         var currentPlayer = playerRunningState.getCurrentPlayer();

@@ -25,3 +25,5 @@ maugame:
     reset-every-seconds: 20
   token-duration-seconds: 900
   refresh-token-duration-days: 30
+  turn-timeout-ms: 10000
+  max-chat-size: 10

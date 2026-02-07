@@ -40,7 +40,7 @@ class GameCore {
         this.playerContext = playerContext;
         this.id = id;
 
-        this.playerContext.listenPlayerTimeout(this::restorePlayerCards);
+        this.playerContext.listenDisqualify(this::restorePlayerCards);
         this.playerContext.listenStartGame(this::start);
     }
 
@@ -61,6 +61,15 @@ class GameCore {
             shouldPlay = players.approveWinCandidates();
         if (shouldPlay)
             players.getPlayerForPlay(playerId, (publisher, player) -> playCardInternal(publisher, player, card, nextColor));
+    }
+
+    public void performPlayCardNoPoke(final String playerId, Card card, Color nextColor) throws MauEngineBaseException {
+        var players = getRunningState();
+        var shouldPlay = true;
+        if (!cardManager.isReturnCard(card))
+            shouldPlay = players.approveWinCandidates();
+        if (shouldPlay)
+            players.getPlayerForPlayWithoutPoke(playerId, (publisher, player) -> playCardInternal(publisher, player, card, nextColor));
     }
 
     private boolean playCardInternal(ActionPublisher publisher, Player player, Card card, Color nextColor) throws PlayerMoveException, CardException {
@@ -106,6 +115,12 @@ class GameCore {
         var players = getRunningState();
         if (players.approveWinCandidates())
             players.getPlayerForPlay(playerId, this::passInternal);
+    }
+
+    public void performPassNoPoke(final String playerId) throws MauEngineBaseException {
+        var players = getRunningState();
+        if (players.approveWinCandidates())
+            players.getPlayerForPlayWithoutPoke(playerId, this::passInternal);
     }
 
     private boolean passInternal(ActionPublisher publisher, Player player) throws CardException {
