@@ -4,12 +4,14 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-public record Result<T, E extends Exception>(T value, E exception) {
+public class Result<T, E extends Exception> {
 
-    public Result {
-        if (value == null && exception == null) {
-            throw new IllegalStateException("Both value and exception are null.");
-        }
+    private final T value;
+    private final E exception;
+
+    private Result(T value, E exception) {
+        this.value = value;
+        this.exception = exception;
     }
 
     public static <T1, E1 extends Exception> Result<T1, E1> of(T1 value) {
