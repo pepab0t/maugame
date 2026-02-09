@@ -15,6 +15,7 @@ import java.util.Queue;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Component
@@ -56,25 +57,20 @@ public class PlayerStore {
         return playerLocks.computeIfAbsent(playerId, ignore -> PlayerConcurrentSources.create());
     }
 
-    private GamePlayer dropSession(String sessionId) {
-        var playerFuture = sessionToPlayer.remove(sessionId);
-        if (playerFuture == null) {
-            throw new IllegalStateException("Unexpected error: player does not exist for session " + sessionId);
-        }
-        var player = playerFuture.getNow(null);
-        var playerId = player.getPlayerId();
-        Optional.ofNullable(playerToSession.remove(playerId))
+    private Optional<GamePlayer> dropSession(String sessionId) {
+        var playerOpt = Optional.ofNullable(sessionToPlayer.remove(sessionId))
+            .map(f -> f.getNow(null));
+
+        var idOpt = playerOpt.map(GamePlayer::getPlayerId);
+        idOpt.map(playerToSession::remove)
             .map(future -> future.getNow(null))
-            .ifPresent(session -> {
-                try {
-                    session.close();
-                } catch (IOException e) {
-                    log.debug("error when closing session", e);
-                }
-            });
-        playerLocks.remove(playerId);
-        log.info("Player {} disconnected.", player);
-        return player;
+            .ifPresent(session -> suppressException(
+                session::close,
+                e -> log.debug("error when closing session", e)
+            ));
+        idOpt.ifPresent(playerLocks::remove);
+        playerOpt.ifPresent(player -> log.info("Player {} disconnected.", player));
+        return playerOpt;
     }
 
     public void registerSession(GamePlayer player, WebSocketSession session) {
@@ -100,14 +96,11 @@ public class PlayerStore {
         return Optional.ofNullable(playerToGame.get(playerId));
     }
 
-    public RemovedPair removePlayerBySession(String sessionId) {
-        var player = dropSession(sessionId);
-        var playerId = player.getPlayerId();
-        var game = removePlayerFromGame(playerId);
-        return new RemovedPair(player, game);
-    }
-
-    public record RemovedPair(GamePlayer player, Optional<Game> game) {
+    public Optional<RemovedPair> removePlayerBySession(String sessionId) {
+        return dropSession(sessionId)
+            .flatMap(p -> removePlayerFromGame(p.getPlayerId())
+                .map(g -> new RemovedPair(p, g))
+            );
     }
 
     /**
@@ -161,5 +154,20 @@ public class PlayerStore {
         public String toString() {
             return queue.stream().map(Object::toString).collect(Collectors.joining("\n"));
         }
+    }
+
+    private void suppressException(ThrowingRunnable runnable, Consumer<Exception> handler) {
+        try {
+            runnable.run();
+        } catch (Exception ex) {
+            handler.accept(ex);
+        }
+    }
+
+    interface ThrowingRunnable {
+        void run() throws Exception;
+    }
+
+    public record RemovedPair(GamePlayer player, Game game) {
     }
 }

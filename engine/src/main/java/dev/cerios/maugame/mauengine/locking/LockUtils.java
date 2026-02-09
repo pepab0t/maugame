@@ -1,8 +1,9 @@
-package dev.cerios.maugame.websocket.locking;
+package dev.cerios.maugame.mauengine.locking;
 
 import lombok.experimental.UtilityClass;
 
 import java.util.concurrent.locks.Lock;
+import java.util.function.Consumer;
 
 @UtilityClass
 public class LockUtils {
@@ -30,6 +31,17 @@ public class LockUtils {
             try {
                 lock.lock();
                 runnable.run();
+            } finally {
+                lock.unlock();
+            }
+        };
+    }
+
+    public static <T> Consumer<T> wrapLock(Lock lock, Consumer<T> consumer) {
+        return (T t) -> {
+            try {
+                lock.lock();
+                consumer.accept(t);
             } finally {
                 lock.unlock();
             }

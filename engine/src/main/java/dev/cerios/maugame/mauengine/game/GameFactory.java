@@ -10,6 +10,8 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import static dev.cerios.maugame.mauengine.locking.LockUtils.wrapLock;
+
 @RequiredArgsConstructor
 public class GameFactory {
     private final Random random;
@@ -25,15 +27,12 @@ public class GameFactory {
         var autoPlayer = new AutoPlayHandler(cardManager, core, new Random());
         playerContext.setLobbyState();
         playerContext.listenNpcTurn(autoPlayer::computeAutoPlay);
+        playerContext.listenTurnTimeout(wrapLock(globalLock.writeLock(), autoPlayer::computeAutoPlay));
         return game;
     }
 
     public Game createGame(int minPlayers, int maxPlayers, long turnTimeoutMs) {
         return createGame(random, minPlayers, maxPlayers, turnTimeoutMs);
-    }
-
-    Game createGame() {
-        return createGame(2, 5, 60_000);
     }
 
     public Game createGame(GameSettings settings) {

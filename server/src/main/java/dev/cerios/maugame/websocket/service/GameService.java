@@ -48,24 +48,22 @@ public class GameService {
 
     @EventListener
     public void disconnectPlayer(DisconnectEvent event) {
-        var pair = storage.removePlayerBySession(event.sessionId());
-        var player = pair.player();
-        var gameOpt = pair.game();
-        if (gameOpt.isPresent()) {
-            var game = gameOpt.get();
-            if (game.getPlayerCount() == 0) {
-                gameStorage.remove(game.getId());
-            } else {
-                var playerId = player.getPlayerId();
-                var disconnectMessage = ServerMessage.ofDisconnect(player.getUsername());
-                for (var otherPlayer : game.getAllPlayers()) {
-                    if (otherPlayer instanceof NpcPlayer || otherPlayer.getPlayerId().equals(playerId)) {
-                        continue;
+        storage.removePlayerBySession(event.sessionId())
+            .ifPresent(pair -> {
+                var game = pair.game();
+                var player = pair.player();
+                if (game.getPlayerCount() == 0) {
+                    gameStorage.remove(game.getId());
+                } else {
+                    var playerId = player.getPlayerId();
+                    var disconnectMessage = ServerMessage.ofDisconnect(player.getUsername());
+                    for (var otherPlayer : game.getAllPlayers()) {
+                        if (otherPlayer instanceof NpcPlayer || otherPlayer.getPlayerId().equals(playerId))
+                            continue;
+                        distributor.enqueue(otherPlayer.getPlayerId(), disconnectMessage);
                     }
-                    distributor.enqueue(otherPlayer.getPlayerId(), disconnectMessage);
                 }
-            }
-        }
+            });
     }
 
     public void registerNpc(String playerId) throws NotFoundException, GameException {

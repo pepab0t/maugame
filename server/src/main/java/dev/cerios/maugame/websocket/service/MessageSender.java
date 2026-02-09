@@ -19,7 +19,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static dev.cerios.maugame.websocket.locking.LockUtils.wrapLock;
+import static dev.cerios.maugame.mauengine.locking.LockUtils.wrapLock;
 
 @Service
 @Slf4j
@@ -92,7 +92,7 @@ public class MessageSender {
                 default -> {
                 }
             }
-            log.debug("send to {} action: {}", player.getUsername(), dto);
+            log.debug("send to {} ({}) action: {}", player.getPlayerId(), player.getUsername(), dto);
         } catch (JacksonException e) {
             log.info("error during serialization", e);
         } catch (MauTimeoutException ignore) {

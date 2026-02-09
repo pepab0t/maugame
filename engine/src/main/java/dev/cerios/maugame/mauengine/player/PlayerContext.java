@@ -13,17 +13,19 @@ public class PlayerContext {
 
     @Getter
     private PlayerStorage players;
-    private Map<String, Integer> scores = new HashMap<>();
-    private Consumer<Player> timeoutListener;
-    private final List<Consumer<UUID>> startListeners = new LinkedList<>();
+    private Consumer<Player> disqualifyListener;
+    private Consumer<Player> turnTimeoutListener;
     private Consumer<NpcPlayer> npcListener;
+
+    private final Map<String, Integer> scores = new HashMap<>();
+    private final List<Consumer<UUID>> startListeners = new LinkedList<>();
 
     public PlayerContext(PlayerStateFactory factory) {
         this.factory = factory;
     }
 
-    public void listenPlayerTimeout(Consumer<Player> listener) {
-        timeoutListener = listener;
+    public void listenDisqualify(Consumer<Player> listener) {
+        disqualifyListener = listener;
     }
 
     public void listenStartGame(Consumer<UUID> startListener) {
@@ -32,6 +34,10 @@ public class PlayerContext {
 
     public void listenNpcTurn(Consumer<NpcPlayer> npcListener) {
         this.npcListener = npcListener;
+    }
+
+    public void listenTurnTimeout(Consumer<Player> listener) {
+        this.turnTimeoutListener = listener;
     }
 
     public PlayerLobbyState getLobby() throws GameException {
@@ -60,8 +66,10 @@ public class PlayerContext {
             var shuffledPlayers = new ArrayList<>(playerCollection);
             Collections.shuffle(shuffledPlayers);
             var state = factory.createRunningState(shuffledPlayers, scores, this::setFinishState, npcListener);
-            if (timeoutListener != null)
-                state.listenTimeout(timeoutListener);
+            if (disqualifyListener != null)
+                state.listenDisqualify(disqualifyListener);
+            if (turnTimeoutListener != null)
+                state.listenTurnTimeout(turnTimeoutListener);
             players = state;
             logState();
             state.initializePlayer();

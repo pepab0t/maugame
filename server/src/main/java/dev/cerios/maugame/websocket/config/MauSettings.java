@@ -21,23 +21,35 @@ public class MauSettings implements GameSettings {
 
     @Min(2)
     @Max(2)
-    private volatile int minPlayers = MIN_PLAYERS;
+    private volatile int minPlayers;
     @Min(2)
     @Max(5)
-    private volatile int maxPlayers = MAX_PLAYERS;
+    private volatile int maxPlayers;
     @Min(10)
-    private volatile long turnTimeoutMs = TURN_TIMEOUT_MS;
-    private volatile boolean cheatingEnabled = CHEATING_ENABLED;
+    private volatile long turnTimeoutMs;
+    private volatile boolean cheatingEnabled;
     @Min(0)
     @Max(1000)
-    private volatile int maxChatSize = MAX_CHAT_SIZE;
+    private volatile int maxChatSize;
 
     private final Integer tokenDurationSeconds;
     private final Integer refreshTokenDurationDays;
 
-    public MauSettings(Integer tokenDurationSeconds, Integer refreshTokenDurationDays) {
+    public MauSettings(
+        Integer tokenDurationSeconds,
+        Integer refreshTokenDurationDays,
+        int maxChatSize,
+        boolean cheatingEnabled,
+        long turnTimeoutMs,
+        int maxPlayers
+    ) {
         this.tokenDurationSeconds = tokenDurationSeconds;
         this.refreshTokenDurationDays = refreshTokenDurationDays;
+        this.maxChatSize = maxChatSize;
+        this.cheatingEnabled = cheatingEnabled;
+        this.turnTimeoutMs = turnTimeoutMs;
+        this.maxPlayers = maxPlayers;
+        this.minPlayers = MIN_PLAYERS;
     }
 
     public void restoreDefaults() {
