@@ -23,7 +23,7 @@ maugame:
   rate-limiter:
     tokens: 20
     reset-every-seconds: 20
-  token-duration-seconds: 900
+  token-duration-seconds: 10
   refresh-token-duration-days: 30
   turn-timeout-ms: 10000
   max-chat-size: 10

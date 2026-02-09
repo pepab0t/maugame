@@ -4,6 +4,7 @@ import dev.cerios.maugame.mauengine.exception.GameException;
 import dev.cerios.maugame.websocket.exception.InvalidHandshakeException;
 import dev.cerios.maugame.websocket.exception.ServerException;
 import dev.cerios.maugame.websocket.exception.security.AuthException;
+import dev.cerios.maugame.websocket.interceptor.result.Result;
 import dev.cerios.maugame.websocket.security.JwtUtil;
 import dev.cerios.maugame.websocket.service.GameService;
 import dev.cerios.maugame.websocket.store.GameStorage;
@@ -18,9 +19,9 @@ import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.server.HandshakeInterceptor;
 
 import java.util.Map;
-import java.util.Optional;
 
 import static dev.cerios.maugame.websocket.security.CookieUtil.*;
+import static dev.cerios.maugame.websocket.security.JwtUtil.ParsedToken;
 import static dev.cerios.maugame.websocket.wshandler.ParameterParser.*;
 
 @Component
@@ -43,9 +44,9 @@ public class GameRegisterInterceptor implements HandshakeInterceptor {
 
         try {
             var username = getToken(cookies)
-                .map(JwtUtil.ParsedToken::getUsername)
+                .map(ParsedToken::getUsername)
                 .or(params::username)
-                .orElseThrow(() -> new InvalidHandshakeException("Missing cookies or user parameter."));
+                .getOrThrow();
             var player = switch (params.decideOperation()) {
                 case ConnectRandomData _ -> gameStorage.registerToRandom(username);
                 case ConnectCustomData(String lobby) -> gameStorage.registerToNamed(username, lobby);
@@ -70,12 +71,16 @@ public class GameRegisterInterceptor implements HandshakeInterceptor {
         return true;
     }
 
-    private Optional<JwtUtil.ParsedToken> getToken(Map<String, String> cookies) throws AuthException {
+    private Result<ParsedToken, AuthException> getToken(Map<String, String> cookies) throws AuthException {
         var token = cookies.get(TOKEN_COOKIE_NAME);
         if (token == null) {
-            return Optional.empty();
+            return Result.ofError(new AuthException("Missing cookie `token`."));
         }
-        return Optional.of(jwtUtil.parse(token));
+        try {
+            return Result.of(jwtUtil.parse(token));
+        } catch (AuthException e) {
+            return Result.ofError(e);
+        }
     }
 
     @Override

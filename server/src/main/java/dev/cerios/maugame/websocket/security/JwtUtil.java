@@ -43,7 +43,7 @@ public class JwtUtil {
         return Jwts.builder()
             .subject(username)
             .issuedAt(Date.from(now))
-            .expiration(Date.from(now.plusSeconds(settings.getTokenDurationSeconds()))) // 15 minutes
+            .expiration(Date.from(now.plusSeconds(settings.getTokenDurationSeconds())))
             .signWith(SECRET_KEY)
             .compact();
     }
