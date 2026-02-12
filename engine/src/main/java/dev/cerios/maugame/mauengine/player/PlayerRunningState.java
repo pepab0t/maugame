@@ -6,8 +6,8 @@ import dev.cerios.maugame.mauengine.exception.NotSupportedOperation;
 import dev.cerios.maugame.mauengine.game.GameEventListener;
 import dev.cerios.maugame.mauengine.game.action.*;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.map.ListOrderedMap;
 
@@ -207,7 +207,7 @@ public class PlayerRunningState implements PlayerStorage {
      * @return whether game should continue
      */
     private boolean win(PlayerWrapper playerWrapper) {
-        playerWrapper.getFuture().cancel();
+        playerWrapper.cancelFuture();
         var player = playerWrapper.getPlayer();
         player.deactivate();
         player.getHand().clear();
@@ -222,8 +222,10 @@ public class PlayerRunningState implements PlayerStorage {
             if (activeCounter.get() == 1) {
                 loseLastActivePlayer();
             }
-            actionPublisher.publishActionToAll(new EndAction(getPlayerRank(), provideScoresCopy()));
+            var rank = getPlayerRank();
+            actionPublisher.publishActionToAll(new EndAction(rank, provideScoresCopy()));
             stateSwitcher.accept(getPlayers());
+            log.info("Game ({}) has ended with rank: {}", gameId, rank);
         }
         return gameContinues;
     }
@@ -269,7 +271,7 @@ public class PlayerRunningState implements PlayerStorage {
                 : () -> disqualifyPlayer(currentPlayer);
 
             var timeoutFuture = executor.schedule(timeoutRunnable, turnTimeoutMs, TimeUnit.MILLISECONDS);
-            playerWrapper.getFuture().cancel();
+            playerWrapper.cancelFuture();
             playerWrapper.setFuture(new FutureWithTimeout(timeoutFuture, expireTime));
         }
         actionPublisher.publishActionToAll(new PlayerShiftAction(currentPlayer, expireTime));
@@ -314,7 +316,7 @@ public class PlayerRunningState implements PlayerStorage {
     private void poke(String playerId) {
         Optional.ofNullable(players.get(playerId)).ifPresent(w -> {
             w.resetTimeouts();
-            w.getFuture().cancel();
+            w.cancelFuture();
         });
     }
 
@@ -326,7 +328,7 @@ public class PlayerRunningState implements PlayerStorage {
      */
     public long getLastExpire(String playerId) {
         return Optional.ofNullable(players.get(playerId))
-            .map(w -> w.getFuture().expireAtMs())
+            .map(PlayerWrapper::getExpireAtMs)
             .orElse(PlayerWrapper.defaultFuture.expireAtMs());
     }
 
@@ -347,7 +349,7 @@ public class PlayerRunningState implements PlayerStorage {
 
     private void loseLastActivePlayer() {
         var losingPlayerWrapper = findNextPlayer();
-        losingPlayerWrapper.getFuture().cancel();
+        losingPlayerWrapper.cancelFuture();
         var losingPlayer = losingPlayerWrapper.getPlayer();
         losingPlayer.getHand().clear();
         losingPlayer.deactivate();
@@ -356,7 +358,7 @@ public class PlayerRunningState implements PlayerStorage {
         addScore(losingPlayer.getUsername());
     }
 
-    record FutureWithTimeout(Future<?> future, long expireAtMs) {
+    record FutureWithTimeout(@NonNull Future<?> future, long expireAtMs) {
         void cancel() {
             future.cancel(true);
         }
@@ -366,9 +368,9 @@ public class PlayerRunningState implements PlayerStorage {
     static class PlayerWrapper {
         @Getter
         private final Player player;
+
         private int timeouts = 0;
-        @Setter
-        private volatile FutureWithTimeout future;
+        private volatile FutureWithTimeout future = defaultFuture;
 
         private static final FutureWithTimeout defaultFuture = new FutureWithTimeout(CompletableFuture.completedFuture(null), -1);
 
@@ -384,10 +386,17 @@ public class PlayerRunningState implements PlayerStorage {
             timeouts = 0;
         }
 
-        public synchronized FutureWithTimeout getFuture() {
-            return future == null
-                ? defaultFuture
-                : future;
+        public void cancelFuture() {
+            this.future.cancel();
+        }
+
+        public long getExpireAtMs() {
+            return future.expireAtMs();
+        }
+
+        public void setFuture(FutureWithTimeout future) {
+            this.future.cancel();
+            this.future = future;
         }
     }
 }
