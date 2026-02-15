@@ -1,5 +1,7 @@
 # Getting Started
 
+Go to endpoint `/swagger` to see REST api docs.
+
 > __request__ = websocket message __player -> server__\
 > __message__ = websocket message __server -> player__
 

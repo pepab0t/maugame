@@ -24,9 +24,12 @@ public class TestController {
 
     public TestController(JwtUtil jwt) {this.jwt = jwt;}
 
-    @GetMapping("/test")
-    public Map<String, String> test(@AuthenticationPrincipal AppUserDetails principal) {
-        return Map.of("message", "Hello `%s`! Let's play some games.".formatted(principal.getUsername()));
+    @GetMapping("/whoami")
+    public Map<String, String> whoAmI(@AuthenticationPrincipal AppUserDetails principal) {
+        return Map.of(
+            "user", principal.getUsername(),
+            "message", "Hello `%s`! Let's play some games.".formatted(principal.getUsername())
+        );
     }
 
     @GetMapping("/time-left")
@@ -35,6 +38,6 @@ public class TestController {
         var parsedToken = jwt.parse(token);
         var expiration = parsedToken.getExpiration().toInstant();
         var timeLeft = (double) Duration.between(Instant.now(), expiration).toMillis();
-        return Map.of("username", parsedToken.getUsername(), "timeLeft", timeLeft / 1000);
+        return Map.of("username", parsedToken.getUsername(), "timeLeftSeconds", timeLeft / 1000);
     }
 }
