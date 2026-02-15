@@ -1,7 +1,18 @@
 # Getting Started
 
-Go to endpoint `/swagger` to see REST api docs.
+Visit to see REST api docs.
 
+```bash
+http://localhost:8080/swagger
+```
+
+or for json representaition
+
+```
+http://localhost:8080/v3/api-docs
+```
+
+Meaning:
 > __request__ = websocket message __player -> server__\
 > __message__ = websocket message __server -> player__
 
