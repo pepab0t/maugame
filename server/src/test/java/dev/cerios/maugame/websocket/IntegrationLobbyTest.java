@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -37,6 +38,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+@ActiveProfiles({"test", "dev"})
 class IntegrationLobbyTest {
 
     @LocalServerPort
@@ -388,7 +390,8 @@ class IntegrationLobbyTest {
     @Test
     void whenUserConnectsWithInvalidParams_thenRespondAndClose() throws IOException, JSONException {
         // when
-        var client1 = new TestClient(createConnectionUri("   "), 100);
+        // username is just whitespace
+        var client1 = new TestClient(createConnectionUri("%20"), 100);
         String message;
         try (var ignore = client1.handshake().join()) {
             message = client1.get();
@@ -400,7 +403,7 @@ class IntegrationLobbyTest {
                 {
                   "messageType": "ERROR",
                   "exceptionBody": {
-                    "name": "InvalidHandshakeException"
+                    "name": "AuthException"
                   }
                 }
                 """, message, JSONCompareMode.LENIENT

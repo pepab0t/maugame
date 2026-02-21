@@ -22,8 +22,8 @@ public class RateLimiter {
     private final Duration refillEvery;
 
     public RateLimiter(
-        @Value("${maugame.rate-limiter.tokens}") int tokenCapacity,
-        @Value("${maugame.rate-limiter.reset-every-seconds}") int refillEverySeconds
+        @Value("${maugame.rate-limiter.tokens:20}") int tokenCapacity,
+        @Value("${maugame.rate-limiter.reset-every-seconds:3}") int refillEverySeconds
     ) {
         this.tokenCapacity = tokenCapacity;
         this.refillEvery = Duration.ofSeconds(refillEverySeconds);

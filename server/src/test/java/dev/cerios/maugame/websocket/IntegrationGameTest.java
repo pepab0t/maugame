@@ -3,6 +3,7 @@ package dev.cerios.maugame.websocket;
 import com.jayway.jsonpath.JsonPath;
 import dev.cerios.maugame.websocket.clientutils.TestClient;
 import dev.cerios.maugame.websocket.config.MauSettings;
+import dev.cerios.maugame.websocket.security.CookieUtil;
 import dev.cerios.maugame.websocket.store.GameStorage;
 import dev.cerios.maugame.websocket.store.PlayerStore;
 import lombok.SneakyThrows;
@@ -17,6 +18,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.core.env.Environment;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
@@ -33,6 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+@ActiveProfiles({"test", "dev"})
 public class IntegrationGameTest {
 
     @LocalServerPort
@@ -121,9 +124,10 @@ public class IntegrationGameTest {
             session2 = client2.handshakeWithCatch().join();
             session3 = client3.handshakeWithCatch().join();
 
-            var playerId1 = JsonPath.<String>read(client1.getReceivedMessages().getFirst(), "$.action.playerDto.playerId");
             client1.get(2);
-            client2.get();
+            client2.get(1);
+           
+            var playerId1 = JsonPath.<String>read(client1.getReceivedMessages().getFirst(), "$.action.playerDto.playerId");
 
             session1.sendMessage(readyRequest);
             session2.sendMessage(readyRequest);
@@ -139,10 +143,10 @@ public class IntegrationGameTest {
             var disconnect3 = client3.get();
 
             new TestClient(
-                String.format("ws://localhost:%d/game?user=%s&player=%s", port, "user1", playerId1),
+                String.format("ws://localhost:%d/game?user=%s&reconnect=true", port, "user1"),
                 messageMatcher,
                 TIMEOUT_MS
-            ).handshakeWithCatch().join();
+            ).handshakeWithCatch(CookieUtil.createCookie("playerId", playerId1, "/game")).join();
 
             var reconnect2 = client2.get();
             var reconnect3 = client3.get();
@@ -203,10 +207,11 @@ public class IntegrationGameTest {
             session1 = client1.handshake().join();
             session2 = client2.handshake().join();
             session3 = client3.handshake().join();
+            client1.get(3);
+            client2.get(2);
+            client3.get(1);
 
-            var playerId1 = JsonPath.<String>read(client1.get(), "$.action.playerDto.playerId");
-            client2.get();
-            client3.get();
+            var playerId1 = JsonPath.<String>read(client1.getReceivedMessages().getFirst(), "$.action.playerDto.playerId");
 
             session1.sendMessage(readyRequest);
             session2.sendMessage(readyRequest);
@@ -224,22 +229,23 @@ public class IntegrationGameTest {
             client3.get();
 
             var clientReconnect = new TestClient(
-                String.format("ws://localhost:%d/game?user=%s&player=%s", port, "user1", playerId1),
+                String.format("ws://localhost:%d/game?user=%s&reconnect=true", port, "user1"),
                 m -> m.contains("ACTION"),
                 TIMEOUT_MS
             );
-            sessionReconnect = clientReconnect.handshake().join();
+            sessionReconnect = clientReconnect.handshake(CookieUtil.createCookie("playerId", playerId1, "/game")).join();
             var reconnectedMessages = clientReconnect.get(7);
+            reconnectedMessages.forEach(System.out::println);
 
             // then
             var drawOptions = Set.of("HIDDEN_DRAW", "DRAW");
-            assertThat(JsonPath.<String>read(reconnectedMessages.get(0), "$.action.type")).isEqualTo("START_GAME");
-            assertThat(JsonPath.<String>read(reconnectedMessages.get(1), "$.action.type")).isEqualTo("START_PILE");
-            assertThat(JsonPath.<String>read(reconnectedMessages.get(2), "$.action.type")).isIn(drawOptions);
+            assertThat(JsonPath.<String>read(reconnectedMessages.get(0), "$.action.type")).isEqualTo("PLAYERS");
+            assertThat(JsonPath.<String>read(reconnectedMessages.get(1), "$.action.type")).isEqualTo("START_GAME");
+            assertThat(JsonPath.<String>read(reconnectedMessages.get(2), "$.action.type")).isEqualTo("START_PILE");
             assertThat(JsonPath.<String>read(reconnectedMessages.get(3), "$.action.type")).isIn(drawOptions);
             assertThat(JsonPath.<String>read(reconnectedMessages.get(4), "$.action.type")).isIn(drawOptions);
-            assertThat(JsonPath.<String>read(reconnectedMessages.get(5), "$.action.type")).isEqualTo("PLAYER_SHIFT");
-            assertThat(JsonPath.<String>read(reconnectedMessages.get(6), "$.action.type")).isEqualTo("PLAYER_RANK");
+            assertThat(JsonPath.<String>read(reconnectedMessages.get(5), "$.action.type")).isIn(drawOptions);
+            assertThat(JsonPath.<String>read(reconnectedMessages.get(6), "$.action.type")).isEqualTo("PLAYER_SHIFT");
         } finally {
             var it = Stream.of(session1, session2, session3, sessionReconnect)
                 .filter(Objects::nonNull).iterator();
