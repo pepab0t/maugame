@@ -53,7 +53,7 @@ public class GameHandler extends TextWebSocketHandler {
             .map(GamePlayer.class::cast)
             .orElseThrow(() -> new RuntimeException("Game player not found in session attributes (unexpected)."));
         var isReconnect = Optional.ofNullable(attributes.get("reconnect"))
-            .map(x -> Boolean.parseBoolean(x.toString()))
+            .map(Boolean.class::cast)
             .orElse(false);
 
         if (isReconnect) {

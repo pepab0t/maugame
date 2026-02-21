@@ -56,6 +56,7 @@ public class GameRegisterInterceptor implements HandshakeInterceptor {
                     if (playerId == null) {
                         throw new InvalidHandshakeException("No cookie `playerId` found");
                     }
+                    attributes.put("reconnect", true);
                     yield gameService.reconnectPlayer(username, playerId);
                 }
             };

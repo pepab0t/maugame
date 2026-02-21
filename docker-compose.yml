@@ -24,6 +24,7 @@ services:
       DB_URI: "jdbc:postgresql://db:5432/maugame"
       DB_USER: "mauUser"
       DB_PASSWORD: "mauUser"
+      SPRING_PROFILES_ACTIVE: pre-config
 
 networks:
   app-network:

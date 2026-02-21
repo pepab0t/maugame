@@ -1,13 +1,17 @@
 package dev.cerios.maugame.websocket.clientutils;
 
+import jakarta.servlet.http.Cookie;
+import org.springframework.web.socket.WebSocketHttpHeaders;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 
+import java.net.URI;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class TestClient extends StandardWebSocketClient {
 
@@ -26,8 +30,17 @@ public class TestClient extends StandardWebSocketClient {
     }
 
 
-    public CompletableFuture<WebSocketSession> handshake() {
-        return this.execute(handler, uriTemplate);
+    public CompletableFuture<WebSocketSession> handshake(Cookie... cookies) {
+        var headers = new WebSocketHttpHeaders();
+        if (cookies.length > 0) {
+            headers.add(
+                WebSocketHttpHeaders.COOKIE,
+                Arrays.stream(cookies)
+                    .map(c -> c.getName() + "=" + c.getValue())
+                    .collect(Collectors.joining("; "))
+            );
+        }
+        return this.execute(handler, headers, URI.create(uriTemplate));
     }
 
     /**
@@ -35,12 +48,12 @@ public class TestClient extends StandardWebSocketClient {
      *
      * @return future with opened session
      */
-    public CompletableFuture<WebSocketSession> handshakeWithCatch() {
-        return this.execute(handler, uriTemplate)
-                .thenApply(s -> {
-                    this.get();
-                    return s;
-                });
+    public CompletableFuture<WebSocketSession> handshakeWithCatch(Cookie... cookies) {
+        return this.handshake(cookies)
+            .thenApply(s -> {
+                this.get();
+                return s;
+            });
     }
 
     public List<String> getReceivedMessages() {
@@ -69,19 +82,19 @@ public class TestClient extends StandardWebSocketClient {
 
     public static String createConnectionUri(int port, String username, String lobbyName, boolean isNew, boolean isPrivate) {
         return String.format(
-                "ws://localhost:%d/game?user=%s&lobby=%s&new=%s&private=%s",
-                port,
-                username,
-                lobbyName,
-                isNew,
-                isPrivate
+            "ws://localhost:%d/game?user=%s&lobby=%s&new=%s&private=%s",
+            port,
+            username,
+            lobbyName,
+            isNew,
+            isPrivate
         );
     }
 
     public static Predicate<String> createMessageMatcher(Collection<String> containsOneOf) {
         return message -> containsOneOf.stream()
-                .map(word -> "\"" + word + "\"")
-                .anyMatch(message::contains);
+            .map(word -> "\"" + word + "\"")
+            .anyMatch(message::contains);
     }
 
     public static Predicate<String> createMessageMatcher(String... containsOneOf) {
