@@ -27,7 +27,7 @@ public class TestController {
     @GetMapping("/whoami")
     public Map<String, String> whoAmI(@AuthenticationPrincipal AppUserDetails principal) {
         return Map.of(
-            "user", principal.getUsername(),
+            "username", principal.getUsername(),
             "message", "Hello `%s`! Let's play some games.".formatted(principal.getUsername())
         );
     }
