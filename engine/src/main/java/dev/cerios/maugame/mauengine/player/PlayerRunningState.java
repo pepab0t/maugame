@@ -45,6 +45,7 @@ public class PlayerRunningState implements PlayerStorage {
     private final List<Consumer<Player>> disqualifyListeners = new LinkedList<>();
     private final List<Consumer<Player>> turnTimeoutListeners = new LinkedList<>();
     private final Consumer<NpcPlayer> npcTurnListener;
+    private long npcIntervalMs;
 
     PlayerRunningState(
         UUID gameId,
@@ -55,7 +56,8 @@ public class PlayerRunningState implements PlayerStorage {
         Consumer<Collection<Player>> stateSwitcher,
         ReadWriteLock globalLock,
         ActionPublisherBuilder builder,
-        Consumer<NpcPlayer> npcTurnListener
+        Consumer<NpcPlayer> npcTurnListener,
+        long npcInternalSeconds
     ) {
         this(
             gameId,
@@ -67,7 +69,8 @@ public class PlayerRunningState implements PlayerStorage {
             globalLock,
             builder,
             Executors.newScheduledThreadPool(1, Thread.ofVirtual().factory()),
-            npcTurnListener
+            npcTurnListener,
+            npcInternalSeconds
         );
     }
 
@@ -81,7 +84,8 @@ public class PlayerRunningState implements PlayerStorage {
         ReadWriteLock globalLock,
         ActionPublisherBuilder builder,
         ScheduledExecutorService executor,
-        Consumer<NpcPlayer> npcTurnListener
+        Consumer<NpcPlayer> npcTurnListener,
+        long npcIntervalMs
     ) {
         this.gameId = gameId;
         this.random = random;
@@ -99,6 +103,7 @@ public class PlayerRunningState implements PlayerStorage {
         this.activeCounter = new AtomicInteger(this.players.size());
         this.executor = executor;
         this.npcTurnListener = npcTurnListener;
+        this.npcIntervalMs = npcIntervalMs;
     }
 
     @Override
@@ -264,7 +269,7 @@ public class PlayerRunningState implements PlayerStorage {
         var expireTime = System.currentTimeMillis() + turnTimeoutMs;
 
         if (currentPlayer instanceof NpcPlayer npc) {
-            executor.schedule(() -> npcTurnListener.accept(npc), 1, TimeUnit.SECONDS);
+            executor.schedule(() -> npcTurnListener.accept(npc), npcIntervalMs, TimeUnit.MILLISECONDS);
         } else {
             final Runnable timeoutRunnable = playerWrapper.getTimeouts() < 3
                 ? () -> handleTimeout(playerWrapper)

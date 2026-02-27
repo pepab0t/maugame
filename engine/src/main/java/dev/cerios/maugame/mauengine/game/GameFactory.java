@@ -16,10 +16,10 @@ import static dev.cerios.maugame.mauengine.locking.LockUtils.wrapLock;
 public class GameFactory {
     private final Random random;
 
-    public Game createGame(Random random, int minPlayers, int maxPlayers, long turnTimeoutMs) {
+    public Game createGame(Random random, int minPlayers, int maxPlayers, long turnTimeoutMs, long npcIntervalMs) {
         var gameId = UUID.randomUUID();
         var globalLock = new ReentrantReadWriteLock(true);
-        var playerStateFactory = new PlayerStateFactory(gameId, minPlayers, maxPlayers, random, globalLock, turnTimeoutMs);
+        var playerStateFactory = new PlayerStateFactory(gameId, minPlayers, maxPlayers, random, globalLock, turnTimeoutMs, npcIntervalMs);
         var playerContext = new PlayerContext(playerStateFactory);
         var cardManager = CardManager.create(random, new CardComparer());
         var core = new GameCore(cardManager, playerContext, gameId);
@@ -31,11 +31,16 @@ public class GameFactory {
         return game;
     }
 
-    public Game createGame(int minPlayers, int maxPlayers, long turnTimeoutMs) {
-        return createGame(random, minPlayers, maxPlayers, turnTimeoutMs);
+    public Game createGame(int minPlayers, int maxPlayers, long turnTimeoutMs, long npcIntervalMs) {
+        return createGame(random, minPlayers, maxPlayers, turnTimeoutMs, npcIntervalMs);
     }
 
     public Game createGame(GameSettings settings) {
-        return createGame(settings.getMinPlayers(), settings.getMaxPlayers(), settings.getTurnTimeoutMs());
+        return createGame(
+            settings.getMinPlayers(),
+            settings.getMaxPlayers(),
+            settings.getTurnTimeoutMs(),
+            settings.getNpcIntervalMs()
+        );
     }
 }

@@ -31,6 +31,7 @@ public class MauSettings implements GameSettings {
     @Min(0)
     @Max(1000)
     private volatile int maxChatSize;
+    private volatile long npcIntervalMs;
 
     private final Integer tokenDurationSeconds;
     private final Integer refreshTokenDurationDays;
@@ -41,7 +42,8 @@ public class MauSettings implements GameSettings {
         int maxChatSize,
         boolean cheatingEnabled,
         long turnTimeoutMs,
-        int maxPlayers
+        int maxPlayers,
+        long npcIntervalMs
     ) {
         this.tokenDurationSeconds = tokenDurationSeconds;
         this.refreshTokenDurationDays = refreshTokenDurationDays;
@@ -50,6 +52,7 @@ public class MauSettings implements GameSettings {
         this.turnTimeoutMs = turnTimeoutMs;
         this.maxPlayers = maxPlayers;
         this.minPlayers = MIN_PLAYERS;
+        this.npcIntervalMs = npcIntervalMs == 0 ? 1000 : npcIntervalMs;
     }
 
     public void restoreDefaults() {

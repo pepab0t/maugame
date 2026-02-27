@@ -107,7 +107,17 @@ class PlayerRunningStateTest {
     private PlayerRunningState createPlayerRunningStateWithMockExecutor() {
         doReturn(mockFuture).when(mockExecutor).schedule(any(Runnable.class), anyLong(), any(TimeUnit.class));
         return new PlayerRunningState(
-            UUID.randomUUID(), random, testPlayers, scores, turnTimeoutMs, stateSwitcher, globalLock, actionPublisherBuilder, mockExecutor, _ -> {}
+            UUID.randomUUID(),
+            random,
+            testPlayers,
+            scores,
+            turnTimeoutMs,
+            stateSwitcher,
+            globalLock,
+            actionPublisherBuilder,
+            mockExecutor,
+            _ -> {},
+            1000
         );
     }
 
@@ -115,7 +125,16 @@ class PlayerRunningStateTest {
     void constructor_ShouldInitializeCorrectly() {
         // When
         playerRunningState = new PlayerRunningState(
-            UUID.randomUUID(), random, testPlayers, scores, turnTimeoutMs, stateSwitcher, globalLock, actionPublisherBuilder, _ -> {}
+            UUID.randomUUID(),
+            random,
+            testPlayers,
+            scores,
+            turnTimeoutMs,
+            stateSwitcher,
+            globalLock,
+            actionPublisherBuilder,
+            _ -> {},
+            1000
         );
         playerRunningState.initializePlayer();
 
@@ -301,7 +320,17 @@ class PlayerRunningStateTest {
         };
 
         playerRunningState = new PlayerRunningState(
-            UUID.randomUUID(), random, twoPlayers, scores, turnTimeoutMs, switcher, globalLock, actionPublisherBuilder, mockExecutor, _ -> {}
+            UUID.randomUUID(),
+            random,
+            twoPlayers,
+            scores,
+            turnTimeoutMs,
+            switcher,
+            globalLock,
+            actionPublisherBuilder,
+            mockExecutor,
+            _ -> {},
+            1000
         );
         doReturn(mockFuture).when(mockExecutor).schedule(any(Runnable.class), anyLong(), any(TimeUnit.class));
 

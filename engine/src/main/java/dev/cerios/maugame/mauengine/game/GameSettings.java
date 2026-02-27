@@ -6,4 +6,6 @@ public interface GameSettings {
     int getMaxPlayers();
 
     long getTurnTimeoutMs();
+
+    long getNpcIntervalMs();
 }

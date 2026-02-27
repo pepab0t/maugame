@@ -19,6 +19,7 @@ public class PlayerStateFactory {
     private final Random random;
     private final ReadWriteLock globalLock;
     private final long turnTimeoutMs;
+    private final long npcIntervalSeconds;
 
     public PlayerRunningState createRunningState(
         Collection<Player> players,
@@ -35,7 +36,8 @@ public class PlayerStateFactory {
             stateSwitcher,
             globalLock,
             new ActionPublisherBuilder(),
-            npcListener
+            npcListener,
+            npcIntervalSeconds
         );
     }
 

@@ -27,6 +27,7 @@ maugame:
   refresh-token-duration-days: 30
   turn-timeout-ms: 10000
   max-chat-size: 10
+  npc-interval-ms: 1000
 
 springdoc:
   swagger-ui:
