@@ -22,6 +22,16 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 @EnableWebSecurity
 public class SecurityConfig {
 
+    public static final String[] NON_FILTERED_PATHS = {
+        "/h2-console",
+        "/h2-console/**",
+        "/api/auth/**",
+        "/swagger",
+        "/swagger-ui/**",
+        "/v3/api-docs/**",
+        "/api-docs/**"
+    };
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, JwtAuthFilter jwtAuthFilter) {
         return http
@@ -29,14 +39,7 @@ public class SecurityConfig {
             .cors(Customizer.withDefaults())
             .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin)) // allow frames
             .authorizeHttpRequests(customizer -> customizer
-                .requestMatchers("/h2-console", "/h2-console/**", "/api/auth/**").permitAll()
-                .requestMatchers("/api/time-left").permitAll()
-                .requestMatchers(
-                    "/swagger",
-                    "/swagger-ui/**",
-                    "/v3/api-docs/**",
-                    "/api-docs/**"
-                ).permitAll()
+                .requestMatchers(NON_FILTERED_PATHS).permitAll()
                 .requestMatchers("/game").permitAll()
                 .anyRequest().authenticated()
             )

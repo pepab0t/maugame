@@ -11,6 +11,7 @@ import dev.cerios.maugame.websocket.security.entity.RefreshToken;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +22,7 @@ import static dev.cerios.maugame.websocket.security.CookieUtil.*;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthService {
 
     private final UserRepository userRepository;
@@ -59,25 +61,26 @@ public class AuthService {
     }
 
     @Transactional
-    public MauUser refresh(
+    public String refresh(
         HttpServletRequest request,
         HttpServletResponse response
     ) throws AuthException {
         var rawToken = findCookieValue(request.getCookies(), REFRESH_TOKEN_COOKIE_NAME);
         var claims = jwt.parse(rawToken);
+        var username = claims.getUsername();
 
-        var user = userRepository.findByUsername(claims.getUsername())
+        final var refreshToken = userRepository.findTokenByUsername(claims.getUsername())
             .orElseThrow(() -> new AuthException("Invalid token username"));
 
-        Optional.ofNullable(user.getRefreshToken())
+        Optional.ofNullable(refreshToken)
             .filter(t -> rawToken.equals(t.getToken()))
             .orElseThrow(() -> new AuthException("Invalid refresh token"));
 
-        var newRefreshToken = jwt.generateRefreshToken(user.getUsername());
-        user.getRefreshToken().setToken(newRefreshToken);
-        response.addCookie(createTokenCookie(jwt.generateToken(user.getUsername())));
+        var newRefreshToken = jwt.generateRefreshToken(username);
+        refreshToken.setToken(newRefreshToken);
+        response.addCookie(createTokenCookie(jwt.generateToken(username)));
         response.addCookie(createRefreshTokenCookie(newRefreshToken));
 
-        return user;
+        return username;
     }
 }

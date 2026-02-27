@@ -52,9 +52,9 @@ public class AuthController {
         HttpServletRequest request,
         HttpServletResponse response
     ) throws AuthException {
-        var user = authService.refresh(request, response);
-        log.info("refreshed user '{}'", user.getUsername());
-        return new UserResponseDto("Refreshed successfully!", user.getUsername());
+        var username = authService.refresh(request, response);
+        log.info("refreshed user '{}'", username);
+        return new UserResponseDto("Refreshed successfully!", username);
     }
 
     @PostMapping("/logout")

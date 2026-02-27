@@ -13,12 +13,14 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Optional;
 
+import static dev.cerios.maugame.websocket.config.SecurityConfig.NON_FILTERED_PATHS;
 import static dev.cerios.maugame.websocket.security.CookieUtil.TOKEN_COOKIE_NAME;
 
 @Component
@@ -28,6 +30,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final UserDetailsService userDetailsService;
+
+    private final AntPathMatcher matcher = new AntPathMatcher();
+
+    @Override
+    protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
+        return Arrays.stream(NON_FILTERED_PATHS)
+            .anyMatch(path -> matcher.match(path, request.getServletPath()));
+    }
 
     @Override
     protected void doFilterInternal(
@@ -58,7 +68,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     }
                 }
             } catch (Exception e) {
-                log.info("JWT validation failed: {}", e.getMessage());
+                log.debug("JWT validation failed: {}", e.getMessage());
             }
         });
 

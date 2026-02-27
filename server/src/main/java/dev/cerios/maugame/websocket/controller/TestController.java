@@ -34,8 +34,7 @@ public class TestController {
 
     @GetMapping("/time-left")
     public Map<String, Object> getExpiration(HttpServletRequest request) throws AuthException {
-        var token = findCookieValue(request.getCookies(), TOKEN_COOKIE_NAME);
-        var parsedToken = jwt.parse(token);
+        var parsedToken = jwt.parse(findCookieValue(request.getCookies(), TOKEN_COOKIE_NAME));
         var expiration = parsedToken.getExpiration().toInstant();
         var timeLeft = (double) Duration.between(Instant.now(), expiration).toMillis();
         return Map.of("username", parsedToken.getUsername(), "timeLeftSeconds", timeLeft / 1000);
