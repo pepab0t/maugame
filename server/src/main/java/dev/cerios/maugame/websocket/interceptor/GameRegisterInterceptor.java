@@ -1,7 +1,10 @@
 package dev.cerios.maugame.websocket.interceptor;
 
 import dev.cerios.maugame.mauengine.exception.GameException;
+import dev.cerios.maugame.mauengine.game.GamePlayer;
 import dev.cerios.maugame.websocket.exception.InvalidHandshakeException;
+import dev.cerios.maugame.websocket.exception.LobbyAlreadyExistsException;
+import dev.cerios.maugame.websocket.exception.NotFoundException;
 import dev.cerios.maugame.websocket.exception.ServerException;
 import dev.cerios.maugame.websocket.exception.security.AuthException;
 import dev.cerios.maugame.websocket.interceptor.result.Result;
@@ -43,26 +46,14 @@ public class GameRegisterInterceptor implements HandshakeInterceptor {
         var cookies = parseCookies(request.getHeaders());
 
         try {
-            var username = getToken(cookies)
-                .map(ParsedToken::getUsername)
-                .or(params::username)
-                .getOrThrow();
-            var player = switch (params.decideOperation()) {
-                case ConnectRandomData _ -> gameStorage.registerToRandom(username);
-                case ConnectCustomData(String lobby) -> gameStorage.registerToNamed(username, lobby);
-                case CreateData(String lobby, boolean isPrivate) -> gameStorage.registerToNew(username, lobby, isPrivate);
-                case ReconnectData _ -> {
-                    var playerId = cookies.get("playerId");
-                    if (playerId == null) {
-                        throw new InvalidHandshakeException("No cookie `playerId` found");
-                    }
-                    attributes.put("reconnect", true);
-                    yield gameService.reconnectPlayer(username, playerId);
-                }
-            };
+            var tokenResult = getToken(cookies);
+            var player = connectToGame(params, attributes, cookies, tokenResult);
             attributes.put("gamePlayer", player);
             if (response instanceof ServletServerHttpResponse servletResponse) {
-                servletResponse.getServletResponse().addCookie(createGlobalCookie("playerId", player.getPlayerId()));
+                servletResponse.getServletResponse().addCookie(createGlobalCookie(
+                    "playerId",
+                    player.getPlayerId()
+                ));
             } else {
                 throw new RuntimeException("no servlet response");
             }
@@ -70,6 +61,35 @@ public class GameRegisterInterceptor implements HandshakeInterceptor {
             attributes.put("exception", e);
         }
         return true;
+    }
+
+    private GamePlayer connectToGame(
+        ConnectionParameters params,
+        Map<String, Object> attributes,
+        Map<String, String> cookies,
+        Result<ParsedToken, AuthException> tokenResult
+    ) throws AuthException, LobbyAlreadyExistsException, NotFoundException, GameException, InvalidHandshakeException {
+        var username = tokenResult
+            .map(ParsedToken::getUsername)
+            .or(params::username)
+            .getOrThrow();
+        return switch (params.decideOperation()) {
+            case ConnectRandomData _ -> gameStorage.registerToRandom(username, tokenResult.isSuccessful());
+            case ConnectCustomData(String lobby) -> gameStorage.registerToNamed(
+                username,
+                lobby,
+                tokenResult.isSuccessful()
+            );
+            case CreateData(String lobby, boolean isPrivate) -> gameStorage.registerToNew(username, lobby, isPrivate);
+            case ReconnectData _ -> {
+                var playerId = cookies.get("playerId");
+                if (playerId == null) {
+                    throw new InvalidHandshakeException("No cookie `playerId` found");
+                }
+                attributes.put("reconnect", true);
+                yield gameService.reconnectPlayer(username, playerId);
+            }
+        };
     }
 
     private Result<ParsedToken, AuthException> getToken(Map<String, String> cookies) throws AuthException {

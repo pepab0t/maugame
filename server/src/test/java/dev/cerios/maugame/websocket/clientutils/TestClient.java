@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 
 public class TestClient extends StandardWebSocketClient {
 
+    private static final String BASE_URI = "ws://localhost:%d/game";
     private final String uriTemplate;
 
     private final TestWebSocketHandler handler;
@@ -80,7 +81,8 @@ public class TestClient extends StandardWebSocketClient {
         return String.format("ws://localhost:%d/game?user=%s", port, username);
     }
 
-    public static String createConnectionUri(int port, String username, String lobbyName, boolean isNew, boolean isPrivate) {
+    public static String createConnectionUri(
+        int port, String username, String lobbyName, boolean isNew, boolean isPrivate) {
         return String.format(
             "ws://localhost:%d/game?user=%s&lobby=%s&new=%s&private=%s",
             port,
@@ -99,5 +101,9 @@ public class TestClient extends StandardWebSocketClient {
 
     public static Predicate<String> createMessageMatcher(String... containsOneOf) {
         return createMessageMatcher(Arrays.asList(containsOneOf));
+    }
+
+    public static String baseUri(int port) {
+        return String.format(BASE_URI, port);
     }
 }

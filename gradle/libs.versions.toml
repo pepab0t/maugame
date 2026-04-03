@@ -1,7 +1,7 @@
 [versions]
 junit = "5.13.4"
 mockito = "5.18.0"
-springboot = "4.0.1"
+springboot = "4.0.5"
 mapstruct = "1.6.3"
 
 [libraries]
@@ -17,6 +17,7 @@ slf4j = { module = "org.slf4j:slf4j-api", version = "2.0.17" }
 collections4 = { module = "org.apache.commons:commons-collections4", version = "4.5.0" }
 springboot-web = { module = "org.springframework.boot:spring-boot-starter-web" }
 springboot-websocket = { module = "org.springframework.boot:spring-boot-starter-websocket" }
+springboot-webflux = { module = "org.springframework.boot:spring-boot-starter-webflux" }
 springboot-test = { module = "org.springframework.boot:spring-boot-starter-test" }
 springboot-validation = { module = "org.springframework.boot:spring-boot-starter-validation" }
 springboot-security = { module = "org.springframework.boot:spring-boot-starter-security" }

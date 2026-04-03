@@ -1,9 +1,11 @@
 package dev.cerios.maugame.websocket;
 
 import com.jayway.jsonpath.JsonPath;
-import dev.cerios.maugame.mauengine.game.GameFactory;
 import dev.cerios.maugame.websocket.clientutils.TestClient;
 import dev.cerios.maugame.websocket.config.MauSettings;
+import dev.cerios.maugame.websocket.dto.rest.UserLogin;
+import dev.cerios.maugame.websocket.dto.rest.UserRegister;
+import dev.cerios.maugame.websocket.security.CookieUtil;
 import dev.cerios.maugame.websocket.store.GameStorage;
 import dev.cerios.maugame.websocket.store.PlayerStore;
 import org.json.JSONException;
@@ -16,9 +18,10 @@ import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
@@ -29,6 +32,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static dev.cerios.maugame.websocket.clientutils.JsonFactory.createReadyRequest;
@@ -37,7 +41,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
 @ActiveProfiles({"test", "dev"})
 class IntegrationLobbyTest {
 
@@ -47,19 +51,19 @@ class IntegrationLobbyTest {
 
     static final long TIMEOUT_MS = 3_000;
 
-    @MockitoSpyBean
-    private GameFactory gameFactory;
-
     @Autowired
     private GameStorage gameStorage;
-
     @Autowired
     private MauSettings mauSettings;
     @Autowired
     private PlayerStore playerStore;
+    private RestClient restClient;
 
     @BeforeEach
     void setUp() {
+        restClient = RestClient.builder()
+            .baseUrl("http://localhost:%d".formatted(port))
+            .build();
         client = new TestClient(createConnectionUri("user1"), TIMEOUT_MS);
         mauSettings.setMaxPlayers(3);
     }
@@ -159,12 +163,14 @@ class IntegrationLobbyTest {
     //        var gameMock = mock(Game.class);
     //        when(gameFactory.createGame(any(int.class), any(int.class))).thenReturn(gameMock);
     //        when(gameMock.registerPlayer(any(String.class), any()))
-    //                .thenReturn(new Player("id1", null, null), new Player("id2", null, null), new Player("id3", null, null));
+    //                .thenReturn(new Player("id1", null, null), new Player("id2", null, null), new Player("id3",
+    //                null, null));
     //        when(gameMock.hasEnoughPlayers()).thenReturn(true);
     //        when(gameMock.getUuid()).thenReturn(UUID.randomUUID());
     //
     //        // when
-    //        try (var s1 = client.handshake().join(); var s2 = client2.handshake().join(); var s3 = client3.handshake().join()) {
+    //        try (var s1 = client.handshake().join(); var s2 = client2.handshake().join(); var s3 = client3
+    //        .handshake().join()) {
     //            s1.sendMessage(readyRequest);
     //            client3.get();
     //            s2.sendMessage(readyRequest);
@@ -293,7 +299,8 @@ class IntegrationLobbyTest {
     }
 
     @Test
-    void whenPlayerAmountExceedsGameCapacity_thenShouldRegisterToAnotherGame() throws IOException, ExecutionException, InterruptedException {
+    void whenPlayerAmountExceedsGameCapacity_thenShouldRegisterToAnotherGame()
+        throws IOException, ExecutionException, InterruptedException {
         // given
         mauSettings.setMaxPlayers(2);
         Predicate<String> messageMatcher = m -> m.contains("START_GAME") || m.contains("PLAYERS");
@@ -558,7 +565,8 @@ class IntegrationLobbyTest {
     }
 
     @Test
-    void whenOneUserCreatesPublicLobby_otherConnectsToIt_anotherConnectsToRandom_thenAllShouldGetSameGameId() throws IOException {
+    void whenOneUserCreatesPublicLobby_otherConnectsToIt_anotherConnectsToRandom_thenAllShouldGetSameGameId()
+        throws IOException {
         // given
         var client2 = new TestClient(
             createConnectionUri("user2", "custom_lobby", true, false),
@@ -629,7 +637,8 @@ class IntegrationLobbyTest {
         final var lobbyName = "private_lobby";
         final Predicate<String> registerMatcher = m -> m.contains("REGISTER_PLAYER");
         var client2 = new TestClient(createConnectionUri("user2", lobbyName, true, false), registerMatcher, TIMEOUT_MS);
-        var client3 = new TestClient(createConnectionUri("user3", lobbyName, false, false), registerMatcher, TIMEOUT_MS);
+        var client3 = new TestClient(
+            createConnectionUri("user3", lobbyName, false, false), registerMatcher, TIMEOUT_MS);
 
         // when
         try (var ignore2 = client2.handshakeWithCatch().join();
@@ -686,7 +695,8 @@ class IntegrationLobbyTest {
     }
 
     @Test
-    void when2PlayersWithSameUsernameRegistersToRandom_theyShouldGetDifferentGameId() throws ExecutionException, InterruptedException, IOException {
+    void when2PlayersWithSameUsernameRegistersToRandom_theyShouldGetDifferentGameId()
+        throws ExecutionException, InterruptedException, IOException {
         Predicate<String> messageFilter = m -> m.contains("REGISTER_PLAYER");
         var client1 = new TestClient(createConnectionUri("testUser"), messageFilter, TIMEOUT_MS);
         var client2 = new TestClient(createConnectionUri("testUser"), messageFilter, TIMEOUT_MS);
@@ -704,6 +714,66 @@ class IntegrationLobbyTest {
         }
     }
 
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
+    void randomGamePlayerPriority() throws IOException {
+        final var username = "testUser123";
+        var anonymousPlayer = new TestClient(createConnectionUri(username), TIMEOUT_MS);
+        var signedPlayer = new TestClient(TestClient.baseUri(port), TIMEOUT_MS);
+
+        var registerResponse = restClient.post()
+            .uri("/api/auth/register")
+            .body(new UserRegister(username, username + "@mau.com", "test", "test"))
+            .retrieve()
+            .toBodilessEntity();
+        assertThat(registerResponse.getStatusCode().is2xxSuccessful()).isTrue();
+
+        var loginResponse = restClient.post()
+            .uri("/api/auth/login")
+            .body(new UserLogin(username, "test"))
+            .retrieve()
+            .toBodilessEntity();
+
+        assertThat(loginResponse.getStatusCode().is2xxSuccessful()).isTrue();
+        var token = parseTokenCookie(loginResponse.getHeaders());
+
+        try (
+            var _ = anonymousPlayer.handshakeWithCatch().join();
+            var _ = signedPlayer.handshakeWithCatch(CookieUtil.createTokenCookie(token)).join()
+        ) {
+            anonymousPlayer.get(3);
+            signedPlayer.get(2);
+        }
+
+        assertThat(anonymousPlayer.getReceivedMessages())
+            .satisfiesExactly(
+                m -> assertRegisterAction(m, username),
+                m -> assertPlayersAction(m, List.of(username)),
+                m -> assertLeaderAction(m, username),
+                m -> assertDisqualifyAction(m, "Your username is taken by registered player.")
+            );
+        assertThat(signedPlayer.getReceivedMessages())
+            .satisfiesExactly(
+                m -> assertRegisterAction(m, username),
+                m -> assertPlayersAction(m, List.of(username)),
+                m -> assertLeaderAction(m, username)
+            );
+    }
+
+    private String parseTokenCookie(HttpHeaders headers) {
+        var values = headers.getOrEmpty("Set-Cookie");
+        if (values.isEmpty()) {
+            throw new IllegalStateException("empty token cookies");
+        }
+        var cookieValue = values.getFirst();
+        var matcher = Pattern.compile(".*token=(\\S+);.*").matcher(cookieValue);
+        if (!matcher.find()) {
+            throw new IllegalStateException("token cookie not found");
+        }
+
+        return matcher.group(1);
+    }
+
     private void assertRegisterAction(String jsonMessage, String expectedUsername) {
         var expectedJson = """
             {
@@ -718,6 +788,34 @@ class IntegrationLobbyTest {
             """.formatted(expectedUsername);
         try {
             JSONAssert.assertEquals(expectedJson, jsonMessage, JSONCompareMode.STRICT_ORDER);
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void assertLeaderAction(String jsonMessage, String expectedLeader) {
+        var expected = """
+            {
+                "messageType":"ACTION",
+                "action": {"type":"LEADER","leader":"%s"}
+            }
+            """.formatted(expectedLeader);
+        try {
+            JSONAssert.assertEquals(expected, jsonMessage, JSONCompareMode.STRICT);
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void assertDisqualifyAction(String jsonMessage, String expectedMessage) {
+        var expected = """
+            {
+                "messageType":"ACTION",
+                "action": {"type":"DISQUALIFIED","message":"%s"}
+            }
+            """.formatted(expectedMessage);
+        try {
+            JSONAssert.assertEquals(expected, jsonMessage, JSONCompareMode.STRICT);
         } catch (JSONException e) {
             throw new RuntimeException(e);
         }

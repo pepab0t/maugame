@@ -68,11 +68,22 @@ public class Game {
         }
     }
 
-    public GamePlayer registerPlayer(String username, final GameEventListener eventListener) throws GameException {
+    public GamePlayer registerPlayer(String username, final GameEventListener eventListener)
+        throws GameException {
+        return registerPlayer(username, eventListener, false);
+    }
+
+    public GamePlayer registerPlayer(String username, final GameEventListener eventListener, boolean priorityPlayer)
+        throws GameException {
+
         var l = lock.writeLock();
         try {
             l.lock();
-            return playerContext.getLobby().registerPlayer(username, eventListener);
+            var lobby = playerContext.getLobby();
+            if (priorityPlayer) {
+                lobby.removePlayerByUsername(username);
+            }
+            return lobby.registerPlayer(username, eventListener);
         } finally {
             l.unlock();
         }
