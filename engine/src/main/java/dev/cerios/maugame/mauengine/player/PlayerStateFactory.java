@@ -1,5 +1,6 @@
 package dev.cerios.maugame.mauengine.player;
 
+import dev.cerios.maugame.mauengine.player.store.PlayerStore;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -12,6 +13,7 @@ import java.util.function.Consumer;
 
 @RequiredArgsConstructor
 public class PlayerStateFactory {
+    private final PlayerStore store;
     @Getter
     private final UUID gameId;
     private final int minPlayers;
@@ -43,6 +45,7 @@ public class PlayerStateFactory {
 
     public PlayerLobbyState createLobbyState(Consumer<Collection<Player>> stateSwitcher) {
         return new PlayerLobbyState(
+            store,
             minPlayers,
             maxPlayers,
             gameId,

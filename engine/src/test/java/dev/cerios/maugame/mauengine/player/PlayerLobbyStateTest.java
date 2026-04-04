@@ -6,6 +6,7 @@ import dev.cerios.maugame.mauengine.game.action.PlayersAction;
 import dev.cerios.maugame.mauengine.game.action.ReadyAction;
 import dev.cerios.maugame.mauengine.game.action.RegisterAction;
 import dev.cerios.maugame.mauengine.game.action.UnreadyAction;
+import dev.cerios.maugame.mauengine.player.store.PlayerStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,6 +25,9 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class PlayerLobbyStateTest {
+
+    @Mock
+    private PlayerStore store;
 
     @Mock
     private Consumer<Collection<Player>> stateSwitcher;
@@ -49,13 +53,13 @@ class PlayerLobbyStateTest {
         doReturn(actionPublisher).when(builder).build();
 
         gameId = UUID.randomUUID();
-        playerLobbyState = new PlayerLobbyState(gameId, stateSwitcher, builder);
+        playerLobbyState = new PlayerLobbyState(store, gameId, stateSwitcher, builder);
     }
 
     @Test
     void constructor_ShouldInitializeCorrectly() {
         // Given & When
-        PlayerLobbyState state = new PlayerLobbyState(gameId, stateSwitcher, builder);
+        PlayerLobbyState state = new PlayerLobbyState(store, gameId, stateSwitcher, builder);
 
         // Then
         assertNotNull(state);

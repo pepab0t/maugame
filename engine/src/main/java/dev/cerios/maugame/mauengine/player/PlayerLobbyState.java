@@ -3,10 +3,10 @@ package dev.cerios.maugame.mauengine.player;
 import dev.cerios.maugame.mauengine.exception.GameException;
 import dev.cerios.maugame.mauengine.game.GameEventListener;
 import dev.cerios.maugame.mauengine.game.action.*;
+import dev.cerios.maugame.mauengine.player.store.PlayerStore;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.iterators.LoopingIterator;
-import org.apache.commons.collections4.map.ListOrderedMap;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -16,9 +16,9 @@ public class PlayerLobbyState extends PlayerReadyStorage {
     private static final Set<String> TAKEN_NAMES = Set.of("Bayraktar", "Baykar", "Baklajuan", "Babakar", "Brumbalek");
     private final Iterator<String> NPC_NAMES = new LoopingIterator<>(TAKEN_NAMES);
 
-    private final ListOrderedMap<String, Player> players = new ListOrderedMap<>();
-    private final Map<String, Player> usernames = new HashMap<>();
-    @Getter
+    private final PlayerStore store;
+
+    @Getter // TODO remove
     private final Map<String, Ready> readyStates = new HashMap<>();
     private final List<Consumer<UUID>> startListeners = new LinkedList<>();
     private Player leader;
@@ -30,55 +30,96 @@ public class PlayerLobbyState extends PlayerReadyStorage {
     private final ActionPublisher actionPublisher;
     private final Consumer<Collection<Player>> stateSwitcher;
 
-    PlayerLobbyState(UUID gameId, Consumer<Collection<Player>> stateSwitcher, ActionPublisherBuilder publisherBuilder) {
-        this(2, 5, gameId, stateSwitcher, publisherBuilder);
+    PlayerLobbyState(
+        PlayerStore store,
+        UUID gameId,
+        Consumer<Collection<Player>> stateSwitcher,
+        ActionPublisherBuilder publisherBuilder
+    ) {
+        this(store, 2, 5, gameId, stateSwitcher, publisherBuilder);
     }
 
     PlayerLobbyState(
+        PlayerStore store,
         int minPlayers,
         int maxPlayers,
         UUID gameId,
         Consumer<Collection<Player>> stateSwitcher,
         ActionPublisherBuilder builder
     ) {
+        this.store = store;
+        store.getUpdates().consume(this::handlePlayerChange);
         this.minPlayers = minPlayers;
         this.maxPlayers = maxPlayers;
-        this.actionPublisher = builder.withPlayers(players::valueList).build();
+        this.actionPublisher = builder.withPlayers(store::getAll).build(); // TODO get rid of supplier
         this.gameId = gameId;
         this.stateSwitcher = stateSwitcher;
     }
 
+    private void handlePlayerChange(PlayerStore.PlayerChange playerChange) {
+        var player = playerChange.player();
+        switch (playerChange.changeType()) {
+            case INSERT -> {
+                if (player instanceof NpcPlayer) {
+                    return;
+                }
+                var playerId = player.getPlayerId();
+                readyStates.put(playerId, new Ready(player));
+
+                actionPublisher.publishActionExcludingPlayer(
+                    new RegisterAction(gameId, player, false),
+                    playerId
+                );
+                actionPublisher.publishAction(player, new RegisterAction(gameId, player, true));
+                actionPublisher.publishAction(player, new PlayersAction(List.copyOf(store.getAll())));
+                if (leader == null) {
+                    leader = player;
+                    actionPublisher.publishActionToAll(new LeaderAction(leader.getUsername()));
+                } else {
+                    actionPublisher.publishAction(player, new LeaderAction(leader.getUsername()));
+                }
+                for (var r : readyStates.values()) {
+                    if (r.set(false))
+                        actionPublisher.publishActionExcludingPlayer(
+                            new UnreadyAction(r.getPlayer().getUsername()),
+                            playerId
+                        );
+                }
+                for (var p : store.getAll()) {
+                    if (p instanceof NpcPlayer npc)
+                        actionPublisher.publishAction(player, new ReadyAction(npc.getUsername()));
+                }
+            }
+            case DELETE -> {
+                var nonNpcs = findNonNpcPlayers();
+                if (nonNpcs.isEmpty()) {
+                    store.clear();
+                    readyStates.clear();
+                    leader = null;
+                    return;
+                } else if (leader == player) {
+                    leader = nonNpcs.getFirst();
+                    actionPublisher.publishActionToAll(new LeaderAction(leader.getUsername()));
+                }
+
+                for (var ready : readyStates.values()) {
+                    if (ready.set(false))
+                        actionPublisher.publishActionToAll(new UnreadyAction(ready.getPlayer().getUsername()));
+                }
+                actionPublisher.publishActionToAll(new RemovePlayerAction(player, 0));
+            }
+        }
+    }
+
     @Override
     public Player registerPlayer(String username, GameEventListener eventListener) throws GameException {
-        if (usernames.containsKey(username))
+        if (store.containsUsername(username))
             throw new GameException("Username `" + username + "` is given");
-        if (players.size() >= maxPlayers) {
+        if (store.count() >= maxPlayers) {
             throw new GameException("Too many players");
         }
         var player = PlayerFactory.createPlayer(username, eventListener);
-        var playerId = player.getPlayerId();
-
-        usernames.put(username, player);
-        players.put(playerId, player);
-        readyStates.put(playerId, new Ready(player));
-
-        actionPublisher.publishActionExcludingPlayer(new RegisterAction(gameId, player, false), playerId);
-        actionPublisher.publishAction(player, new RegisterAction(gameId, player, true));
-        actionPublisher.publishAction(player, new PlayersAction(getPlayersCopy()));
-        if (leader == null) {
-            leader = player;
-            actionPublisher.publishActionToAll(new LeaderAction(leader.getUsername()));
-        } else {
-            actionPublisher.publishAction(player, new LeaderAction(leader.getUsername()));
-        }
-        for (var r : readyStates.values()) {
-            if (r.set(false))
-                actionPublisher.publishActionExcludingPlayer(new UnreadyAction(r.getPlayer().getUsername()), playerId);
-        }
-        for (var p : players.values()) {
-            if (p instanceof NpcPlayer npc)
-                actionPublisher.publishAction(player, new ReadyAction(npc.getUsername()));
-        }
+        store.addPlayer(player);
         return player;
     }
 
@@ -87,18 +128,17 @@ public class PlayerLobbyState extends PlayerReadyStorage {
     }
 
     public void registerNpcPlayer() throws GameException {
-        if (players.size() >= maxPlayers) {
+        if (store.count() >= maxPlayers) {
             throw new GameException("Too many players");
         }
         var username = NPC_NAMES.next();
-        if (usernames.containsKey(username))
+        if (store.containsUsername(username))
             throw new GameException("Username `" + username + "` is given");
 
         var npc = PlayerFactory.createNpcPlayer(username);
         var playerId = npc.getPlayerId();
 
-        usernames.put(username, npc);
-        players.put(playerId, npc);
+        store.addPlayer(npc);
         readyStates.put(playerId, new NpcReady(npc));
 
         actionPublisher.publishActionToAll(new RegisterAction(gameId, npc, false));
@@ -110,38 +150,18 @@ public class PlayerLobbyState extends PlayerReadyStorage {
 
     @Override
     public void removePlayer(String playerId) {
-        var player = removePlayerInternal(playerId);
-        if (player == null) return;
-
-        var nonNpcs = findNonNpcPlayers();
-        if (nonNpcs.isEmpty()) {
-            players.clear();
-            usernames.clear();
-            readyStates.clear();
-            leader = null;
-            return;
-        } else if (leader == player) {
-            leader = nonNpcs.getFirst();
-            actionPublisher.publishActionToAll(new LeaderAction(leader.getUsername()));
-        }
-
-        for (var ready : readyStates.values()) {
-            if (ready.set(false))
-                actionPublisher.publishActionToAll(new UnreadyAction(ready.getPlayer().getUsername()));
-        }
-        actionPublisher.publishActionToAll(new RemovePlayerAction(player, 0));
+        store.deleteById(playerId)
+            .ifPresentOrElse(
+                player -> log.info("(Game {}) Removed player {}", gameId, player),
+                () -> log.info("(Game {}) No player with id `{}` was found", gameId, playerId)
+            );
     }
 
     public void removePlayerByUsername(String username) {
-        players.values().stream()
-            .filter(player -> player.getUsername().equals(username))
-            .findFirst()
+        store.deleteByUsername(username)
             .ifPresentOrElse(
-                player -> {
-                    player.trigger(new DisqualifiedAction("Your username is taken by registered player."));
-                    removePlayer(player.getPlayerId());
-                },
-                () -> log.debug("Player with username `{}` is not in the game.", username)
+                player -> player.trigger(new DisqualifiedAction("Your username is taken by registered player.")),
+                () -> log.info("(Game {}) Player with username `{}` is not in the game.", gameId, username)
             );
     }
 
@@ -149,52 +169,31 @@ public class PlayerLobbyState extends PlayerReadyStorage {
         if (!isLeader(leaderId)) {
             throw new GameException("Player is not leader of lobby %s.".formatted(gameId));
         }
-        var playerKick = usernames.get(username);
-        if (playerKick == null) {
-            return;
-        }
-        if (playerKick.getPlayerId().equals(leaderId)) {
-            throw new GameException("Cannot kick leader.");
-        }
-
-        removePlayerInternal(playerKick.getPlayerId());
-        for (var ready : readyStates.values()) {
-            if (ready.set(false))
-                actionPublisher.publishActionToAll(new UnreadyAction(ready.getPlayer().getUsername()));
-        }
+        var playerKick = store.deleteByUsername(
+                username,
+                player -> {
+                    if (player.getPlayerId().equals(leaderId)) {
+                        throw new GameException("Cannot kick leader.");
+                    }
+                }
+            )
+            .orElseThrow(() -> new GameException("Username `" + username + "` is not found."));
         actionPublisher.publishAction(playerKick, new DisqualifiedAction());
-        actionPublisher.publishActionExcludingPlayer(new RemovePlayerAction(playerKick, 0), playerKick.getPlayerId());
-    }
-
-    private Player removePlayerInternal(String playerId) {
-        var player = players.remove(playerId);
-        if (player == null)
-            return null;
-
-        usernames.remove(player.getUsername());
-        readyStates.remove(playerId);
-        return player;
     }
 
     private List<Player> findNonNpcPlayers() {
-        return players.values().stream().filter(p -> !(p instanceof NpcPlayer)).toList();
+        return store.getFiltered(p -> !(p instanceof NpcPlayer));
     }
 
     @Override
     public Player getPlayer(String playerId) throws GameException {
-        var player = players.get(playerId);
-        if (player == null)
-            throw new GameException("Player `" + playerId + "` not found");
-        return player;
+        return store.getById(playerId)
+            .orElseThrow(() -> new GameException("Player `" + playerId + "` not found"));
     }
 
     @Override
     public List<Player> getPlayers() {
-        return players.valueList();
-    }
-
-    public List<Player> getPlayersCopy() {
-        return List.copyOf(players.valueList());
+        return store.getAll().stream().toList();
     }
 
     @Override
@@ -243,11 +242,10 @@ public class PlayerLobbyState extends PlayerReadyStorage {
     }
 
     public int getFreeCapacity() {
-        return maxPlayers - players.size();
+        return maxPlayers - store.count();
     }
 
     private boolean hasEnoughPlayers() {
-        return players.size() >= minPlayers;
+        return store.count() >= minPlayers;
     }
-
 }
