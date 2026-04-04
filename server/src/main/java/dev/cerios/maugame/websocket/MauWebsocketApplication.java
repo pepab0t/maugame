@@ -27,7 +27,11 @@ public class MauWebsocketApplication {
 
     @Bean
     @Profile("pre-config")
-    public CommandLineRunner testUserRunner(MauSettings settings, UserRepository userRepository, PasswordEncoder encoder) {
+    public CommandLineRunner testUserRunner(
+        MauSettings settings,
+        UserRepository userRepository,
+        PasswordEncoder encoder
+    ) {
         return _ -> {
             var user = userRepository.save(new MauUser(
                 "test",
