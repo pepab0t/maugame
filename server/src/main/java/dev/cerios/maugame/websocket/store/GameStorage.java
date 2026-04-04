@@ -35,19 +35,23 @@ public class GameStorage {
     private final HashMap<String, UUID> gameRefs = new HashMap<>();
     private final MauSettings mauSettings;
 
-    public GamePlayer registerToRandom(String username) {
+    public GamePlayer registerToRandom(String username, boolean isPriorityPlayer) {
         return runLocked(
             lock.writeLock(), () -> resolveRandomGame(game -> {
-                log.debug("found game {} for user {}", game.getId(), username);
-                var player = game.registerPlayer(username, distributor::enqueue);
+                log.debug("found random game `{}` for player `{}`", game.getId(), username);
+                var player = game.registerPlayer(username, distributor::enqueue, isPriorityPlayer);
                 storage.registerGame(player.getPlayerId(), game);
-                log.info("{} registered to random game {}", player, game.getId());
+                log.info("player {} registered to random game {}", player, game.getId());
                 return player;
             })
         );
     }
 
-    public GamePlayer registerToNamed(String username, String gameName) throws NotFoundException, GameException {
+    public GamePlayer registerToNamed(
+        String username,
+        String gameName,
+        boolean isPriorityPlayer
+    ) throws NotFoundException, GameException {
         var ng = runLocked(
             lock.readLock(), () -> {
                 var gameId = gameRefs.get(gameName);
@@ -62,12 +66,14 @@ public class GameStorage {
             }
         );
 
-        var player = ng.game().registerPlayer(username, distributor::enqueue);
+        var player = ng.game().registerPlayer(username, distributor::enqueue, isPriorityPlayer);
         storage.registerGame(player.getPlayerId(), ng.game());
         return player;
     }
 
-    public GamePlayer registerToNew(String username, String gameName, boolean isPrivate) throws LobbyAlreadyExistsException {
+    public GamePlayer registerToNew(String username, String gameName, boolean isPrivate)
+        throws LobbyAlreadyExistsException {
+
         var newGame = gameFactory.createGame(mauSettings);
         runLocked(
             lock.writeLock(), () -> {

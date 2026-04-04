@@ -72,7 +72,8 @@ public class PlayerLobbyState extends PlayerReadyStorage {
             actionPublisher.publishAction(player, new LeaderAction(leader.getUsername()));
         }
         for (var r : readyStates.values()) {
-            if (r.set(false)) actionPublisher.publishActionExcludingPlayer(new UnreadyAction(r.getPlayer().getUsername()), playerId);
+            if (r.set(false))
+                actionPublisher.publishActionExcludingPlayer(new UnreadyAction(r.getPlayer().getUsername()), playerId);
         }
         for (var p : players.values()) {
             if (p instanceof NpcPlayer npc)
@@ -129,6 +130,19 @@ public class PlayerLobbyState extends PlayerReadyStorage {
                 actionPublisher.publishActionToAll(new UnreadyAction(ready.getPlayer().getUsername()));
         }
         actionPublisher.publishActionToAll(new RemovePlayerAction(player, 0));
+    }
+
+    public void removePlayerByUsername(String username) {
+        players.values().stream()
+            .filter(player -> player.getUsername().equals(username))
+            .findFirst()
+            .ifPresentOrElse(
+                player -> {
+                    player.trigger(new DisqualifiedAction("Your username is taken by registered player."));
+                    removePlayer(player.getPlayerId());
+                },
+                () -> log.debug("Player with username `{}` is not in the game.", username)
+            );
     }
 
     public void kickPlayer(String leaderId, String username) throws GameException {

@@ -38,7 +38,10 @@ public abstract class ActionMapper {
 
     @Mapping(target = "playerDto", expression = "java(playerMapper.toPublicDto(action.player()))")
     @Mapping(target = "type", source = "action", qualifiedByName = "typeGetter")
-    @Mapping(target = "nextColor", expression = "java(action.card().type() == CardType.QUEEN ? action.nextColor() : null)")
+    @Mapping(
+        target = "nextColor",
+        expression = "java(action.card().type() == CardType.QUEEN ? action.nextColor() : null)"
+    )
     public abstract PlayCardActionDto toDto(PlayCardAction action);
 
     @Mapping(target = "players", expression = "java(action.players().stream().map(p -> p.getUsername()).toList())")
@@ -59,7 +62,7 @@ public abstract class ActionMapper {
 
     public abstract GameIdActionDto toDto(StartAction action);
 
-    public abstract ActionDto toDto(DisqualifiedAction action);
+    public abstract DisqualifiedActionDto toDto(DisqualifiedAction action);
 
     public abstract CardActionDto toDto(StartPileAction action);
 

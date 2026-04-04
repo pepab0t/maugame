@@ -27,7 +27,8 @@ public class Result<T, E extends Exception> {
         if (this.value != null) {
             var resolvedValue = valueMapper.apply(this.value);
             if (resolvedValue == null) {
-                return (Result<T1, E>) Result.ofError(new ResultException("Value mapped from %s to null.".formatted(this.value)));
+                return (Result<T1, E>) Result.ofError(
+                    new ResultException("Value mapped from %s to null.".formatted(this.value)));
             }
             return new Result<>(resolvedValue, this.exception);
         }
@@ -47,5 +48,9 @@ public class Result<T, E extends Exception> {
             return this.value;
         }
         throw exception;
+    }
+
+    public boolean isSuccessful() {
+        return this.value != null;
     }
 }
