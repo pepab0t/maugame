@@ -1,0 +1,27 @@
+name: Docker Image Build/Deploy
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'   # Only run on SemVer tags
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set image version
+        run: |
+          IMAGE_VERSION=${GITHUB_REF#refs/tags/}
+          echo "IMAGE_VERSION=${IMAGE_VERSION}" >> $GITHUB_ENV
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_NAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Build and push Docker image
+        run: |
+          docker build . -f Dockerfile -t ${{ secrets.DOCKER_NAME }}/maugame:${IMAGE_VERSION}
+          docker push ${{ secrets.DOCKER_NAME }}/maugame:${IMAGE_VERSION}
