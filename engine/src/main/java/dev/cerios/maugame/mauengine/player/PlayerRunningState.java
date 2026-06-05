@@ -45,7 +45,7 @@ public class PlayerRunningState implements PlayerStorage {
     private final List<Consumer<Player>> disqualifyListeners = new LinkedList<>();
     private final List<Consumer<Player>> turnTimeoutListeners = new LinkedList<>();
     private final Consumer<NpcPlayer> npcTurnListener;
-    private long npcIntervalMs;
+    private final long npcIntervalMs;
 
     PlayerRunningState(
         UUID gameId,
@@ -98,7 +98,10 @@ public class PlayerRunningState implements PlayerStorage {
 
         this.players.putAll(
             playerCollection.stream()
-                .collect(LinkedHashMap::new, (map, p) -> map.put(p.getPlayerId(), new PlayerWrapper(p)), LinkedHashMap::putAll)
+                .collect(
+                    LinkedHashMap::new, (map, p) -> map.put(p.getPlayerId(), new PlayerWrapper(p)),
+                    LinkedHashMap::putAll
+                )
         );
         this.activeCounter = new AtomicInteger(this.players.size());
         this.executor = executor;
@@ -130,11 +133,14 @@ public class PlayerRunningState implements PlayerStorage {
         R apply(T t, U u) throws MauEngineBaseException;
     }
 
-    public void getPlayerForPlayWithoutPoke(String playerId, BiFunctionChecked<ActionPublisher, Player, Boolean> playerFunction) throws MauEngineBaseException {
+    public void getPlayerForPlayWithoutPoke(
+        String playerId, BiFunctionChecked<ActionPublisher, Player, Boolean> playerFunction)
+        throws MauEngineBaseException {
         getPlayerForPlay(playerId, playerFunction, null);
     }
 
-    public void getPlayerForPlay(String playerId, BiFunctionChecked<ActionPublisher, Player, Boolean> playerFunction) throws MauEngineBaseException {
+    public void getPlayerForPlay(String playerId, BiFunctionChecked<ActionPublisher, Player, Boolean> playerFunction)
+        throws MauEngineBaseException {
         getPlayerForPlay(playerId, playerFunction, this::poke);
     }
 
@@ -377,7 +383,8 @@ public class PlayerRunningState implements PlayerStorage {
         private int timeouts = 0;
         private volatile FutureWithTimeout future = defaultFuture;
 
-        private static final FutureWithTimeout defaultFuture = new FutureWithTimeout(CompletableFuture.completedFuture(null), -1);
+        private static final FutureWithTimeout defaultFuture = new FutureWithTimeout(
+            CompletableFuture.completedFuture(null), -1);
 
         public synchronized void increaseTimeoutCount() {
             timeouts++;

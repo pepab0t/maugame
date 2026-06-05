@@ -4,6 +4,7 @@ import dev.cerios.maugame.mauengine.card.CardComparer;
 import dev.cerios.maugame.mauengine.card.CardManager;
 import dev.cerios.maugame.mauengine.player.PlayerContext;
 import dev.cerios.maugame.mauengine.player.PlayerStateFactory;
+import dev.cerios.maugame.mauengine.player.store.PlayerStore;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Random;
@@ -19,7 +20,16 @@ public class GameFactory {
     public Game createGame(Random random, int minPlayers, int maxPlayers, long turnTimeoutMs, long npcIntervalMs) {
         var gameId = UUID.randomUUID();
         var globalLock = new ReentrantReadWriteLock(true);
-        var playerStateFactory = new PlayerStateFactory(gameId, minPlayers, maxPlayers, random, globalLock, turnTimeoutMs, npcIntervalMs);
+        var playerStateFactory = new PlayerStateFactory(
+            new PlayerStore(),
+            gameId,
+            minPlayers,
+            maxPlayers,
+            random,
+            globalLock,
+            turnTimeoutMs,
+            npcIntervalMs
+        );
         var playerContext = new PlayerContext(playerStateFactory);
         var cardManager = CardManager.create(random, new CardComparer());
         var core = new GameCore(cardManager, playerContext, gameId);

@@ -48,7 +48,7 @@ public class PlayerLobbyState extends PlayerReadyStorage {
         ActionPublisherBuilder builder
     ) {
         this.store = store;
-        store.getUpdates().consume(this::handlePlayerChange);
+        store.listen(this::handlePlayerChange);
         this.minPlayers = minPlayers;
         this.maxPlayers = maxPlayers;
         this.actionPublisher = builder.withPlayers(store::getAll).build(); // TODO get rid of supplier
@@ -57,58 +57,61 @@ public class PlayerLobbyState extends PlayerReadyStorage {
     }
 
     private void handlePlayerChange(PlayerStore.PlayerChange playerChange) {
-        var player = playerChange.player();
         switch (playerChange.changeType()) {
-            case INSERT -> {
-                if (player instanceof NpcPlayer) {
-                    return;
-                }
-                var playerId = player.getPlayerId();
-                readyStates.put(playerId, new Ready(player));
+            case INSERT -> handleInsert(playerChange.player());
+            case DELETE -> handleDelete(playerChange.player());
+        }
+    }
 
+    private void handleInsert(Player player) {
+        if (player instanceof NpcPlayer) {
+            return;
+        }
+        var playerId = player.getPlayerId();
+        readyStates.put(playerId, new Ready(player));
+
+        actionPublisher.publishActionExcludingPlayer(
+            new RegisterAction(gameId, player, false),
+            playerId
+        );
+        actionPublisher.publishAction(player, new RegisterAction(gameId, player, true));
+        actionPublisher.publishAction(player, new PlayersAction(List.copyOf(store.getAll())));
+        if (leader == null) {
+            leader = player;
+            actionPublisher.publishActionToAll(new LeaderAction(leader.getUsername()));
+        } else {
+            actionPublisher.publishAction(player, new LeaderAction(leader.getUsername()));
+        }
+        for (var r : readyStates.values()) {
+            if (r.set(false))
                 actionPublisher.publishActionExcludingPlayer(
-                    new RegisterAction(gameId, player, false),
+                    new UnreadyAction(r.getPlayer().getUsername()),
                     playerId
                 );
-                actionPublisher.publishAction(player, new RegisterAction(gameId, player, true));
-                actionPublisher.publishAction(player, new PlayersAction(List.copyOf(store.getAll())));
-                if (leader == null) {
-                    leader = player;
-                    actionPublisher.publishActionToAll(new LeaderAction(leader.getUsername()));
-                } else {
-                    actionPublisher.publishAction(player, new LeaderAction(leader.getUsername()));
-                }
-                for (var r : readyStates.values()) {
-                    if (r.set(false))
-                        actionPublisher.publishActionExcludingPlayer(
-                            new UnreadyAction(r.getPlayer().getUsername()),
-                            playerId
-                        );
-                }
-                for (var p : store.getAll()) {
-                    if (p instanceof NpcPlayer npc)
-                        actionPublisher.publishAction(player, new ReadyAction(npc.getUsername()));
-                }
-            }
-            case DELETE -> {
-                var nonNpcs = findNonNpcPlayers();
-                if (nonNpcs.isEmpty()) {
-                    store.clear();
-                    readyStates.clear();
-                    leader = null;
-                    return;
-                } else if (leader == player) {
-                    leader = nonNpcs.getFirst();
-                    actionPublisher.publishActionToAll(new LeaderAction(leader.getUsername()));
-                }
-
-                for (var ready : readyStates.values()) {
-                    if (ready.set(false))
-                        actionPublisher.publishActionToAll(new UnreadyAction(ready.getPlayer().getUsername()));
-                }
-                actionPublisher.publishActionToAll(new RemovePlayerAction(player, 0));
-            }
         }
+        for (var p : store.getAll()) {
+            if (p instanceof NpcPlayer npc)
+                actionPublisher.publishAction(player, new ReadyAction(npc.getUsername()));
+        }
+    }
+
+    private void handleDelete(Player player) {
+        var nonNpcs = findNonNpcPlayers();
+        if (nonNpcs.isEmpty()) {
+            store.clear();
+            readyStates.clear();
+            leader = null;
+            return;
+        } else if (leader == player) {
+            leader = nonNpcs.getFirst();
+            actionPublisher.publishActionToAll(new LeaderAction(leader.getUsername()));
+        }
+
+        for (var ready : readyStates.values()) {
+            if (ready.set(false))
+                actionPublisher.publishActionToAll(new UnreadyAction(ready.getPlayer().getUsername()));
+        }
+        actionPublisher.publishActionToAll(new RemovePlayerAction(player, 0));
     }
 
     @Override

@@ -1,7 +1,6 @@
 package dev.cerios.maugame.mauengine.player.store;
 
 import dev.cerios.maugame.mauengine.player.Player;
-import lombok.Getter;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -12,8 +11,11 @@ public class PlayerStore {
     private final LinkedHashMap<String, Player> playersById = new LinkedHashMap<>();
     private final Map<String, Player> playersByUsername = new HashMap<>();
     private final Map<String, Integer> scores = new HashMap<>();
-    @Getter
     private final Updates updates = new Updates();
+
+    public void listen(Consumer<PlayerChange> listener) {
+        updates.consume(listener);
+    }
 
     public Optional<Player> getById(String playerId) {
         return Optional.ofNullable(playersById.get(playerId));
