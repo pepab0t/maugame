@@ -11,6 +11,8 @@ import org.apache.commons.collections4.iterators.LoopingIterator;
 import java.util.*;
 import java.util.function.Consumer;
 
+import static dev.cerios.maugame.mauengine.player.store.PlayerStore.PlayerChange;
+
 @Slf4j
 public class PlayerLobbyState extends PlayerReadyStorage {
     private static final Set<String> TAKEN_NAMES = Set.of("Bayraktar", "Baykar", "Baklajuan", "Babakar", "Brumbalek");
@@ -56,7 +58,7 @@ public class PlayerLobbyState extends PlayerReadyStorage {
         this.stateSwitcher = stateSwitcher;
     }
 
-    private void handlePlayerChange(PlayerStore.PlayerChange playerChange) {
+    private void handlePlayerChange(PlayerChange playerChange) {
         switch (playerChange.changeType()) {
             case INSERT -> handleInsert(playerChange.player());
             case DELETE -> handleDelete(playerChange.player());

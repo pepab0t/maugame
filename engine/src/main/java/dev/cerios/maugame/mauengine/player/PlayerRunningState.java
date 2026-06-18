@@ -136,20 +136,22 @@ public class PlayerRunningState implements PlayerStorage {
     public void getPlayerForPlayWithoutPoke(
         String playerId, BiFunctionChecked<ActionPublisher, Player, Boolean> playerFunction)
         throws MauEngineBaseException {
-        getPlayerForPlay(playerId, playerFunction, null);
+        getPlayerForPlay(playerId, playerFunction, false);
     }
 
     public void getPlayerForPlay(String playerId, BiFunctionChecked<ActionPublisher, Player, Boolean> playerFunction)
         throws MauEngineBaseException {
-        getPlayerForPlay(playerId, playerFunction, this::poke);
+        getPlayerForPlay(playerId, playerFunction, true);
     }
 
     private void getPlayerForPlay(
         String playerId,
         BiFunctionChecked<ActionPublisher, Player, Boolean> playerFunction,
-        Consumer<String> playerIdConsumer
+        boolean poke
     ) throws MauEngineBaseException {
-        if (playerIdConsumer != null) poke(playerId);
+        if (poke) {
+            poke(playerId);
+        }
         var playerWrapper = getPlayerWrapper(playerId);
         var player = playerWrapper.getPlayer();
         if (!player.getPlayerId().equals(getCurrentPlayer().getPlayerId())) {

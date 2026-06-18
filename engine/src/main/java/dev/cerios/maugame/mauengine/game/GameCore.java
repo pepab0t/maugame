@@ -56,11 +56,12 @@ class GameCore {
 
     public void performPlayCard(final String playerId, Card card, Color nextColor) throws MauEngineBaseException {
         var players = getRunningState();
-        var shouldPlay = true;
-        if (!cardManager.isReturnCard(card))
-            shouldPlay = players.approveWinCandidates();
-        if (shouldPlay)
-            players.getPlayerForPlay(playerId, (publisher, player) -> playCardInternal(publisher, player, card, nextColor));
+        if (cardManager.isReturnCard(card) || players.approveWinCandidates()) {
+            players.getPlayerForPlay(
+                playerId,
+                (publisher, player) -> playCardInternal(publisher, player, card, nextColor)
+            );
+        }
     }
 
     public void performPlayCardNoPoke(final String playerId, Card card, Color nextColor) throws MauEngineBaseException {
@@ -69,10 +70,12 @@ class GameCore {
         if (!cardManager.isReturnCard(card))
             shouldPlay = players.approveWinCandidates();
         if (shouldPlay)
-            players.getPlayerForPlayWithoutPoke(playerId, (publisher, player) -> playCardInternal(publisher, player, card, nextColor));
+            players.getPlayerForPlayWithoutPoke(
+                playerId, (publisher, player) -> playCardInternal(publisher, player, card, nextColor));
     }
 
-    private boolean playCardInternal(ActionPublisher publisher, Player player, Card card, Color nextColor) throws PlayerMoveException, CardException {
+    private boolean playCardInternal(ActionPublisher publisher, Player player, Card card, Color nextColor)
+        throws PlayerMoveException, CardException {
         List<Card> playerHand = player.getHand();
         final int cardIndex = playerHand.indexOf(card);
         if (cardIndex == -1)
@@ -166,7 +169,8 @@ class GameCore {
         publisher.publishActionToAll(new StartAction(gameId.toString()));
         publisher.publishActionToAll(new StartPileAction(pileCard));
         for (Player player : players.getPlayers()) {
-            publisher.publishActionExcludingPlayer(new HiddenDrawAction(player, player.getHand().size()), player.getPlayerId());
+            publisher.publishActionExcludingPlayer(
+                new HiddenDrawAction(player, player.getHand().size()), player.getPlayerId());
             publisher.publishAction(player, new DrawAction(player.getHand()));
         }
 
@@ -191,7 +195,10 @@ class GameCore {
                 else
                     actions.add(new HiddenDrawAction(p, p.getHand().size()));
             }
-            actions.add(new PlayerShiftAction(players.getCurrentPlayer(), players.getLastExpire(players.getCurrentPlayer().getPlayerId())));
+            actions.add(new PlayerShiftAction(
+                players.getCurrentPlayer(),
+                players.getLastExpire(players.getCurrentPlayer().getPlayerId())
+            ));
             actions.add(new SendRankAction(players.getPlayerRank()));
             final var publisher = players.getActionPublisher();
             actions.forEach(a -> publisher.publishAction(player, a));
