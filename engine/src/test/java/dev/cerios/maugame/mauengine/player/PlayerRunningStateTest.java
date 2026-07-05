@@ -8,6 +8,7 @@ import dev.cerios.maugame.mauengine.game.action.EndAction;
 import dev.cerios.maugame.mauengine.game.action.PlayerShiftAction;
 import dev.cerios.maugame.mauengine.game.action.RemovePlayerAction;
 import dev.cerios.maugame.mauengine.game.action.SendRankAction;
+import dev.cerios.maugame.mauengine.player.PlayerRunningState.BiFunctionChecked;
 import lombok.Getter;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -265,11 +266,10 @@ class PlayerRunningStateTest {
         String nonCurrentPlayerId = testPlayers.stream()
             .filter(p -> !p.getPlayerId().equals(currentPlayer.getPlayerId()))
             .findFirst()
-            .get()
+            .orElseThrow()
             .getPlayerId();
 
-        PlayerRunningState.BiFunctionChecked<ActionPublisher, Player, Boolean> playerFunction =
-            (publisher, player) -> false;
+        BiFunctionChecked<ActionPublisher, Player, Boolean> playerFunction = (_, _) -> false;
 
         // When & Then
         GameException exception = assertThrows(
@@ -277,7 +277,7 @@ class PlayerRunningStateTest {
             () -> playerRunningState.getPlayerForPlay(nonCurrentPlayerId, playerFunction)
         );
 
-        assertEquals("It's not a player's turn.", exception.getMessage());
+        assertEquals("It's not a user1's turn.", exception.getMessage());
     }
 
     @Test
@@ -336,7 +336,8 @@ class PlayerRunningStateTest {
 
         playerRunningState.initializePlayer();
         Player currentPlayer = playerRunningState.getCurrentPlayer();
-        PlayerRunningState.BiFunctionChecked<ActionPublisher, Player, Boolean> winFunction = (_, _) -> true; // Player wins
+        PlayerRunningState.BiFunctionChecked<ActionPublisher, Player, Boolean> winFunction = (_, _) -> true; //
+        // Player wins
 
         // When
         playerRunningState.getPlayerForPlay(currentPlayer.getPlayerId(), winFunction);
@@ -345,6 +346,7 @@ class PlayerRunningStateTest {
         verify(actionPublisher, never()).publishActionToAll(any(EndAction.class));
         assertThat(switcher.getPlayers()).isEmpty();
         assertThat(playerRunningState.getPlayerRank()).isEmpty(); // Both players should be in rank
+        //noinspection unchecked
         assertThat((Queue<Player>) getField(playerRunningState, "winCandidates")).hasSize(1);
     }
 
@@ -360,9 +362,10 @@ class PlayerRunningStateTest {
         // Then
         // Verify by triggering a timeout scenario
         try {
-            var listenersField = PlayerRunningState.class.getDeclaredField("timeoutListeners");
+            var listenersField = PlayerRunningState.class.getDeclaredField("disqualifyListeners");
             listenersField.setAccessible(true);
-            List<Consumer<Player>> listeners = (List<Consumer<Player>>) listenersField.get(playerRunningState);
+            @SuppressWarnings("unchecked")
+            var listeners = (List<Consumer<Player>>) listenersField.get(playerRunningState);
             assertEquals(1, listeners.size());
         } catch (Exception e) {
             fail("Failed to verify listeners: " + e.getMessage());
@@ -370,7 +373,7 @@ class PlayerRunningStateTest {
     }
 
     @Test
-    void getLastExpire_ShouldReturnExpireTime() throws MauEngineBaseException {
+    void getPlayerTurnExpiryTime() throws MauEngineBaseException {
         // Given
         playerRunningState = createPlayerRunningStateWithMockExecutor();
         playerRunningState.initializePlayer();
@@ -378,25 +381,25 @@ class PlayerRunningStateTest {
 
         // Simulate a turn
         PlayerRunningState.BiFunctionChecked<ActionPublisher, Player, Boolean> playerFunction =
-            (publisher, player) -> false;
+            (_, _) -> false;
         playerRunningState.getPlayerForPlay(currentPlayer.getPlayerId(), playerFunction);
 
         Player nextCurrentPlayer = playerRunningState.getCurrentPlayer();
 
         // When
-        long expireTime = playerRunningState.getLastExpire(nextCurrentPlayer.getPlayerId());
+        long expireTime = playerRunningState.getPlayerTurnExpiry(nextCurrentPlayer.getPlayerId());
 
         // Then
         assertTrue(expireTime > 0); // Should have a valid expire time
     }
 
     @Test
-    void getLastExpire_ShouldReturnMinusOneForNonExistentFuture() {
+    void getPlayerTurnExpiry_ShouldReturnMinusOneForNonExistentFuture() {
         // Given
         playerRunningState = createPlayerRunningStateWithMockExecutor();
 
         // When
-        long expireTime = playerRunningState.getLastExpire("nonExistentPlayer");
+        long expireTime = playerRunningState.getPlayerTurnExpiry("nonExistentPlayer");
 
         // Then
         assertEquals(-1L, expireTime);
@@ -411,7 +414,7 @@ class PlayerRunningStateTest {
 
         // Make a player win
         PlayerRunningState.BiFunctionChecked<ActionPublisher, Player, Boolean> winFunction =
-            (publisher, player) -> true;
+            (_, _) -> true;
         playerRunningState.getPlayerForPlay(currentPlayer.getPlayerId(), winFunction);
         playerRunningState.approveWinCandidates();
 
@@ -433,15 +436,15 @@ class PlayerRunningStateTest {
         Future<?> mockInnerFuture = mock(Future.class);
         long expireTime = System.currentTimeMillis() + 1000;
 
-        PlayerRunningState.FutureWithTimeout futureWithTimeout =
-            new PlayerRunningState.FutureWithTimeout(mockInnerFuture, expireTime);
+        PlayerRunningState.FutureWithExpiry futureWithExpiry =
+            new PlayerRunningState.FutureWithExpiry(mockInnerFuture, expireTime);
 
         // When
-        futureWithTimeout.cancel();
+        futureWithExpiry.cancel();
 
         // Then
         verify(mockInnerFuture).cancel(true);
-        assertEquals(expireTime, futureWithTimeout.expireAtMs());
+        assertEquals(expireTime, futureWithExpiry.expireAtMs());
     }
 
     @Test
@@ -457,7 +460,8 @@ class PlayerRunningStateTest {
 
         // Capture the timeout runnable
         ArgumentCaptor<Runnable> runnableCaptor = ArgumentCaptor.forClass(Runnable.class);
-        verify(mockExecutor, atLeastOnce()).schedule(runnableCaptor.capture(), eq(turnTimeoutMs), eq(TimeUnit.MILLISECONDS));
+        verify(mockExecutor, atLeastOnce()).schedule(
+            runnableCaptor.capture(), eq(turnTimeoutMs), eq(TimeUnit.MILLISECONDS));
 
         Runnable timeoutRunnable = runnableCaptor.getValue();
 
@@ -481,7 +485,7 @@ class PlayerRunningStateTest {
 
         // First player wins
         PlayerRunningState.BiFunctionChecked<ActionPublisher, Player, Boolean> winFunction =
-            (publisher, player) -> true;
+            (_, _) -> true;
         playerRunningState.getPlayerForPlay(firstPlayer.getPlayerId(), winFunction);
 
         // Second player wins
@@ -507,7 +511,7 @@ class PlayerRunningStateTest {
         Player currentPlayer = playerRunningState.getCurrentPlayer();
 
         PlayerRunningState.BiFunctionChecked<ActionPublisher, Player, Boolean> throwingFunction =
-            (publisher, player) -> {
+            (_, _) -> {
                 throw new GameException("Test exception");
             };
 

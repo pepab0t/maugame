@@ -34,18 +34,8 @@ public class Game {
         this.playerContext.listenStartGame(uuid -> startListeners.forEach(l -> l.accept(uuid)));
     }
 
-    public void listenStart(Consumer<UUID> startListener) {
+    public void onStart(Consumer<UUID> startListener) {
         this.startListeners.add(startListener);
-    }
-
-    public void playCardMove(final String playerId, Card cardToPlay) throws MauEngineBaseException {
-        var l = lock.writeLock();
-        try {
-            l.lock();
-            core.performPlayCard(playerId, cardToPlay);
-        } finally {
-            l.unlock();
-        }
     }
 
     public void playCardMove(final String playerId, Card cardToPlay, Color nextColor) throws MauEngineBaseException {

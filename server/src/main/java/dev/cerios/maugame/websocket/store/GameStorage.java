@@ -87,7 +87,7 @@ public class GameStorage {
             }
         );
 
-        newGame.listenStart(this::remove);
+        newGame.onStart(this::remove);
 
         try {
             var player = newGame.registerPlayer(username, distributor::enqueue);
@@ -116,7 +116,7 @@ public class GameStorage {
     private Game createAndStorePublicGame() {
         var g = gameFactory.createGame(mauSettings);
         publicGames.putLast(g.getId(), new NamedGame(g));
-        g.listenStart(this::remove);
+        g.onStart(this::remove);
         return g;
     }
 

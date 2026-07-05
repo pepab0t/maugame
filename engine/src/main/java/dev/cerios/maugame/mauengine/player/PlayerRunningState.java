@@ -17,6 +17,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.function.Consumer;
 
+import static dev.cerios.maugame.mauengine.locking.LockUtils.wrapLock;
+
 @Slf4j
 public class PlayerRunningState implements PlayerStorage {
 
@@ -45,7 +47,7 @@ public class PlayerRunningState implements PlayerStorage {
     private final List<Consumer<Player>> disqualifyListeners = new LinkedList<>();
     private final List<Consumer<Player>> turnTimeoutListeners = new LinkedList<>();
     private final Consumer<NpcPlayer> npcTurnListener;
-    private long npcIntervalMs;
+    private final long npcIntervalMs;
 
     PlayerRunningState(
         UUID gameId,
@@ -98,7 +100,10 @@ public class PlayerRunningState implements PlayerStorage {
 
         this.players.putAll(
             playerCollection.stream()
-                .collect(LinkedHashMap::new, (map, p) -> map.put(p.getPlayerId(), new PlayerWrapper(p)), LinkedHashMap::putAll)
+                .collect(
+                    LinkedHashMap::new, (map, p) -> map.put(p.getPlayerId(), new PlayerWrapper(p)),
+                    LinkedHashMap::putAll
+                )
         );
         this.activeCounter = new AtomicInteger(this.players.size());
         this.executor = executor;
@@ -130,20 +135,11 @@ public class PlayerRunningState implements PlayerStorage {
         R apply(T t, U u) throws MauEngineBaseException;
     }
 
-    public void getPlayerForPlayWithoutPoke(String playerId, BiFunctionChecked<ActionPublisher, Player, Boolean> playerFunction) throws MauEngineBaseException {
-        getPlayerForPlay(playerId, playerFunction, null);
-    }
-
-    public void getPlayerForPlay(String playerId, BiFunctionChecked<ActionPublisher, Player, Boolean> playerFunction) throws MauEngineBaseException {
-        getPlayerForPlay(playerId, playerFunction, this::poke);
-    }
-
-    private void getPlayerForPlay(
+    public void getPlayerForPlay(
         String playerId,
-        BiFunctionChecked<ActionPublisher, Player, Boolean> playerFunction,
-        Consumer<String> playerIdConsumer
+        BiFunctionChecked<ActionPublisher, Player, Boolean> playerFunction
     ) throws MauEngineBaseException {
-        if (playerIdConsumer != null) poke(playerId);
+        this.cancelTimer(playerId);
         var playerWrapper = getPlayerWrapper(playerId);
         var player = playerWrapper.getPlayer();
         if (!player.getPlayerId().equals(getCurrentPlayer().getPlayerId())) {
@@ -197,7 +193,7 @@ public class PlayerRunningState implements PlayerStorage {
             .forEach(p -> {
                 playerRank.add(p.getUsername());
                 addScore(p.getUsername());
-                poke(p.getPlayerId());
+                cancelTimer(p.getPlayerId());
                 p.deactivate();
             });
         activeCounter.set(0);
@@ -273,11 +269,9 @@ public class PlayerRunningState implements PlayerStorage {
         } else {
             final Runnable timeoutRunnable = playerWrapper.getTimeouts() < 3
                 ? () -> handleTimeout(playerWrapper)
-                : () -> disqualifyPlayer(currentPlayer);
-
+                : wrapLock(globalLock.readLock(), () -> disqualifyPlayer(currentPlayer));
             var timeoutFuture = executor.schedule(timeoutRunnable, turnTimeoutMs, TimeUnit.MILLISECONDS);
-            playerWrapper.cancelFuture();
-            playerWrapper.setFuture(new FutureWithTimeout(timeoutFuture, expireTime));
+            playerWrapper.setFuture(new FutureWithExpiry(timeoutFuture, expireTime));
         }
         actionPublisher.publishActionToAll(new PlayerShiftAction(currentPlayer, expireTime));
 
@@ -298,29 +292,23 @@ public class PlayerRunningState implements PlayerStorage {
 
     private void disqualifyPlayer(Player player) {
         log.debug("{}: {} timed out - disqualify", gameId, player.getUsername());
-        final var l = globalLock.writeLock();
-        try {
-            l.lock();
-            var activeCount = activeCounter.decrementAndGet();
-            players.remove(player.getPlayerId());
-            actionPublisher.publishAction(player, new DisqualifiedAction());
-            actionPublisher.publishActionToAll(new RemovePlayerAction(player));
-            if (activeCount == 1) {
-                win(findNextPlayer());
-            } else {
-                shiftPlayer();
-            }
-            for (var listener : disqualifyListeners) {
-                listener.accept(player);
-            }
-        } finally {
-            l.unlock();
+        var activeCount = activeCounter.decrementAndGet();
+        players.remove(player.getPlayerId());
+        actionPublisher.publishAction(player, new DisqualifiedAction());
+        actionPublisher.publishActionToAll(new RemovePlayerAction(player));
+        if (activeCount == 1) {
+            win(findNextPlayer());
+        } else {
+            shiftPlayer();
+        }
+        for (var listener : disqualifyListeners) {
+            listener.accept(player);
         }
     }
 
-    private void poke(String playerId) {
+    private void cancelTimer(String playerId) {
         Optional.ofNullable(players.get(playerId)).ifPresent(w -> {
-            w.resetTimeouts();
+            w.resetTimeoutsCount();
             w.cancelFuture();
         });
     }
@@ -331,7 +319,7 @@ public class PlayerRunningState implements PlayerStorage {
      * @param playerId
      * @return last expire time if possible
      */
-    public long getLastExpire(String playerId) {
+    public long getPlayerTurnExpiry(String playerId) {
         return Optional.ofNullable(players.get(playerId))
             .map(PlayerWrapper::getExpireAtMs)
             .orElse(PlayerWrapper.defaultFuture.expireAtMs());
@@ -363,7 +351,7 @@ public class PlayerRunningState implements PlayerStorage {
         addScore(losingPlayer.getUsername());
     }
 
-    record FutureWithTimeout(@NonNull Future<?> future, long expireAtMs) {
+    record FutureWithExpiry(@NonNull Future<?> future, long expireAtMs) {
         void cancel() {
             future.cancel(true);
         }
@@ -375,9 +363,10 @@ public class PlayerRunningState implements PlayerStorage {
         private final Player player;
 
         private int timeouts = 0;
-        private volatile FutureWithTimeout future = defaultFuture;
+        private volatile FutureWithExpiry future = defaultFuture;
 
-        private static final FutureWithTimeout defaultFuture = new FutureWithTimeout(CompletableFuture.completedFuture(null), -1);
+        private static final FutureWithExpiry defaultFuture = new FutureWithExpiry(
+            CompletableFuture.completedFuture(null), -1);
 
         public synchronized void increaseTimeoutCount() {
             timeouts++;
@@ -387,7 +376,7 @@ public class PlayerRunningState implements PlayerStorage {
             return timeouts;
         }
 
-        public synchronized void resetTimeouts() {
+        public synchronized void resetTimeoutsCount() {
             timeouts = 0;
         }
 
@@ -399,7 +388,7 @@ public class PlayerRunningState implements PlayerStorage {
             return future.expireAtMs();
         }
 
-        public void setFuture(FutureWithTimeout future) {
+        public void setFuture(FutureWithExpiry future) {
             this.future.cancel();
             this.future = future;
         }

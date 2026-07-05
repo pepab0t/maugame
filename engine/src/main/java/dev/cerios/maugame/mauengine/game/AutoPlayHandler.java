@@ -27,7 +27,7 @@ public class AutoPlayHandler {
         findPossibleCardPlay(player, pileCard, effect)
             .orElse(toRunnable(() -> {
                 log.debug("[{} ({})] Performing pass.", player.getPlayerId(), player.getUsername());
-                core.performPassNoPoke(player.getPlayerId());
+                core.performPass(player.getPlayerId());
             }))
             .run();
     }
@@ -50,8 +50,8 @@ public class AutoPlayHandler {
         log.debug("[{} ({})] Chosen to play: {}", player.getPlayerId(), player.getUsername(), cardToPlay);
         return Optional.of(
             cardToPlay.type() == CardType.QUEEN ?
-                toRunnable(() -> core.performPlayCardNoPoke(player.getPlayerId(), cardToPlay, mostOccuredColor(hand))) :
-                toRunnable(() -> core.performPlayCardNoPoke(player.getPlayerId(), cardToPlay, null))
+                toRunnable(() -> core.performPlayCard(player.getPlayerId(), cardToPlay, mostOccuredColor(hand))) :
+                toRunnable(() -> core.performPlayCard(player.getPlayerId(), cardToPlay, null))
         );
     }
 
