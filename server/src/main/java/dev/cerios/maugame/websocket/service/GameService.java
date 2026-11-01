@@ -27,7 +27,8 @@ public class GameService {
 
     public GamePlayer reconnectPlayer(String username, String playerId) throws NotFoundException {
         try {
-            var game = storage.getGame(playerId).orElseThrow(() -> new NotFoundException("Game not found for given player."));
+            var game = storage.getGame(playerId)
+                .orElseThrow(() -> new NotFoundException("Game not found for given player."));
             var player = game.getPlayer(playerId);
             if (!player.getUsername().equals(username)) {
                 throw new NotFoundException("Player(id='%s', username='%s') not found".formatted(playerId, username));

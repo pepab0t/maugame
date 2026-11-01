@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
@@ -49,7 +50,8 @@ public class PlayerStore {
         try {
             return playerFuture.get(futureSessionTimeoutMs, TimeUnit.MILLISECONDS);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            throw new MauTimeoutException("session %s not initialized in %d milliseconds".formatted(sessionId, futureSessionTimeoutMs), e);
+            throw new MauTimeoutException(
+                "session %s not initialized in %d milliseconds".formatted(sessionId, futureSessionTimeoutMs), e);
         }
     }
 
@@ -110,17 +112,20 @@ public class PlayerStore {
      * @return <i>empty</i> if game remains empty, <i>Game</i> if it has more players left
      */
     private Optional<Game> removePlayerFromGame(String playerId) {
-        return Optional.ofNullable(playerToGame.computeIfPresent(
+        var gameRef = new AtomicReference<Game>();
+        playerToGame.computeIfPresent(
             playerId, (id, game) -> {
                 try {
                     game.removePlayer(id);
+                    gameRef.set(game);
                     log.info("Player {} removed from the game {}", id, game);
                     return null;
                 } catch (NotSupportedOperation _) {
                     return game;
                 }
             }
-        ));
+        );
+        return Optional.ofNullable(gameRef.get());
     }
 
     public void removePlayerById(String playerId) {

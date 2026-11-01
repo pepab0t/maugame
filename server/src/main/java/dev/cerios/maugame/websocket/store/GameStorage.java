@@ -130,6 +130,9 @@ public class GameStorage {
                     gameRefs.remove(namedGame.name());
             }
         );
+        log.info("Remaining public games: {}; private games: {}", publicGames.size(), privateGames.size());
+        log.debug("Remaining public games: {}", publicGames.keySet());
+        log.debug("Remaining private games: {}", privateGames.keySet());
     }
 
     public void clear() {

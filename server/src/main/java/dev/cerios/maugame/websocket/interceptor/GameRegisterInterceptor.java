@@ -50,10 +50,8 @@ public class GameRegisterInterceptor implements HandshakeInterceptor {
             var player = connectToGame(params, attributes, cookies, tokenResult);
             attributes.put("gamePlayer", player);
             if (response instanceof ServletServerHttpResponse servletResponse) {
-                servletResponse.getServletResponse().addCookie(createGlobalCookie(
-                    "playerId",
-                    player.getPlayerId()
-                ));
+                var cookie = createGlobalCookie("playerId", player.getPlayerId());
+                servletResponse.getServletResponse().addCookie(cookie);
             } else {
                 throw new RuntimeException("no servlet response");
             }
