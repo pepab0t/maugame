@@ -12,6 +12,7 @@ services:
       - app-network
   maugame:
     image: maugame:latest
+    pull_policy: build
     depends_on:
       - db
     build:
