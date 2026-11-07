@@ -76,6 +76,7 @@ public class Game {
     public GamePlayer registerPlayer(String username, final GameEventListener eventListener, boolean priorityPlayer)
         throws GameException {
 
+        
         var l = lock.writeLock();
         try {
             l.lock();

@@ -1,3 +1,5 @@
+name: maugame
+
 services:
   db:
     image: postgres:16
@@ -9,8 +11,8 @@ services:
     ports:
       - "5432:5432"
     networks:
-      - app-network
-  maugame:
+      - app_network
+  backend:
     image: maugame:latest
     pull_policy: build
     depends_on:
@@ -20,7 +22,7 @@ services:
     ports:
       - "9090:9090"
     networks:
-      - app-network
+      - app_network
     environment:
       DB_URI: "jdbc:postgresql://db:5432/maugame"
       DB_USER: "mauUser"
@@ -29,4 +31,4 @@ services:
       MAU_ALLOWED_ORIGINS: "https://5-189-186-149.sslip.io,http://localhost:4400,http://localhost:4200"
 
 networks:
-  app-network:
+  app_network:
