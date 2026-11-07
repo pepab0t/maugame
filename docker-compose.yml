@@ -3,7 +3,7 @@ name: maugame
 services:
   db:
     image: postgres:16
-    container_name: mau_database
+    container_name: postgres
     environment:
       POSTGRES_USER: mauUser
       POSTGRES_PASSWORD: mauUser
@@ -12,6 +12,7 @@ services:
       - app_network
   backend:
     image: maugame:latest
+    container_name: backend
     pull_policy: build
     depends_on:
       - db
