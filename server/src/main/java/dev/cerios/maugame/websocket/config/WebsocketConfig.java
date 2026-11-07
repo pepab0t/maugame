@@ -4,6 +4,7 @@ import dev.cerios.maugame.websocket.interceptor.GameRegisterInterceptor;
 import dev.cerios.maugame.websocket.interceptor.QueryParamInterceptor;
 import dev.cerios.maugame.websocket.wshandler.GameHandler;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
@@ -18,10 +19,13 @@ public class WebsocketConfig implements WebSocketConfigurer {
     private final QueryParamInterceptor queryParamInterceptor;
     private final GameRegisterInterceptor gameRegisterInterceptor;
 
+    @Value("${maugame.allowed-origins}")
+    private String[] allowedOrigins;
+
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(gameHandler, "/game")
-            .setAllowedOrigins("*")
+            .setAllowedOrigins(allowedOrigins)
             .addInterceptors(queryParamInterceptor, gameRegisterInterceptor);
     }
 }
