@@ -8,8 +8,6 @@ services:
       POSTGRES_USER: mauUser
       POSTGRES_PASSWORD: mauUser
       POSTGRES_DB: maugame
-    ports:
-      - "5432:5432"
     networks:
       - app_network
   backend:
