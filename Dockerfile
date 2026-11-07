@@ -26,6 +26,6 @@ WORKDIR /app
 # Copy built JAR from the previous stage
 COPY --from=builder /home/gradle/project/server/build/libs/*.jar app.jar
 
-EXPOSE 8080
+EXPOSE 9090
 
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

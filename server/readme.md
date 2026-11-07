@@ -3,13 +3,13 @@
 Visit to see REST api docs.
 
 ```bash
-http://localhost:8080/swagger
+http://localhost:9090/swagger
 ```
 
 or for json representaition
 
 ```
-http://localhost:8080/v3/api-docs
+http://localhost:9090/v3/api-docs
 ```
 
 Meaning:
