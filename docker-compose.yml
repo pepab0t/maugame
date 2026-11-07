@@ -26,6 +26,7 @@ services:
       DB_USER: "mauUser"
       DB_PASSWORD: "mauUser"
       SPRING_PROFILES_ACTIVE: pre-config
+      MAU_ALLOWED_ORIGINS: "https://5-189-186-149.sslip.io,http://localhost:4400,http://localhost:4200"
 
 networks:
   app-network:
