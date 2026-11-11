@@ -4,6 +4,7 @@ import dev.cerios.maugame.mauengine.exception.GameException;
 import dev.cerios.maugame.mauengine.game.Game;
 import dev.cerios.maugame.mauengine.game.GamePlayer;
 import dev.cerios.maugame.websocket.config.MauSettings;
+import dev.cerios.maugame.websocket.exception.InvalidCommandException;
 import dev.cerios.maugame.websocket.message.ServerMessage;
 import dev.cerios.maugame.websocket.store.PlayerStore;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,8 @@ import static dev.cerios.maugame.mauengine.locking.LockUtils.runLocked;
 @Service
 public class ChatService {
 
+    private static final int MAX_MESSAGE_SIZE = 100;
+
     private final Map<UUID, Queue<ChatMessage>> gameChats = new ConcurrentHashMap<>();
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
@@ -33,7 +36,10 @@ public class ChatService {
     private final MessageSender distributor;
     private final MauSettings settings;
 
-    public void sendChatMessage(String playerId, String message) {
+    public void sendChatMessage(String playerId, String message) throws InvalidCommandException {
+        if (message.length() > MAX_MESSAGE_SIZE) {
+            throw new InvalidCommandException("Message length exceeds limit %d".formatted(MAX_MESSAGE_SIZE));
+        }
         runLocked(lock.writeLock(), () -> sendChatMessageInternal(playerId, message));
     }
 
