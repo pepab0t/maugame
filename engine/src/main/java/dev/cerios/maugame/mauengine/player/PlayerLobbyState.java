@@ -2,6 +2,7 @@ package dev.cerios.maugame.mauengine.player;
 
 import dev.cerios.maugame.mauengine.exception.GameException;
 import dev.cerios.maugame.mauengine.game.GameEventListener;
+import dev.cerios.maugame.mauengine.game.GamePlayer;
 import dev.cerios.maugame.mauengine.game.action.*;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -86,7 +87,7 @@ public class PlayerLobbyState extends PlayerReadyStorage {
         return leader != null && leader.getPlayerId().equals(playerId);
     }
 
-    public void registerNpcPlayer() throws GameException {
+    public GamePlayer registerNpcPlayer() throws GameException {
         if (players.size() >= maxPlayers) {
             throw new GameException("Too many players");
         }
@@ -106,6 +107,7 @@ public class PlayerLobbyState extends PlayerReadyStorage {
             if (r.set(false)) actionPublisher.publishActionToAll(new UnreadyAction(r.getPlayer().getUsername()));
         }
         actionPublisher.publishActionToAll(new ReadyAction(npc.getUsername()));
+        return npc;
     }
 
     @Override

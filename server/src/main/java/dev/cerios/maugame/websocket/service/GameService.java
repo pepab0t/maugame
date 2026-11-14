@@ -7,12 +7,14 @@ import dev.cerios.maugame.mauengine.exception.MauEngineBaseException;
 import dev.cerios.maugame.mauengine.game.GamePlayer;
 import dev.cerios.maugame.mauengine.player.NpcPlayer;
 import dev.cerios.maugame.websocket.event.DisconnectEvent;
+import dev.cerios.maugame.websocket.event.RegisterNpcEvent;
 import dev.cerios.maugame.websocket.exception.NotFoundException;
 import dev.cerios.maugame.websocket.message.ServerMessage;
 import dev.cerios.maugame.websocket.store.GameStorage;
 import dev.cerios.maugame.websocket.store.PlayerStore;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.web.socket.WebSocketSession;
@@ -24,6 +26,7 @@ public class GameService {
     private final PlayerStore storage;
     private final MessageSender distributor;
     private final GameStorage gameStorage;
+    private final ApplicationEventPublisher publisher;
 
     public GamePlayer reconnectPlayer(String username, String playerId) throws NotFoundException {
         try {
@@ -70,7 +73,9 @@ public class GameService {
     public void registerNpc(String playerId) throws NotFoundException, GameException {
         var game = storage.getGame(playerId)
             .orElseThrow(() -> new NotFoundException("Game not found for given player."));
-        game.addNpc(playerId);
+        var npc = game.addNpc(playerId);
+        storage.registerGame(npc.getPlayerId(), game);
+        publisher.publishEvent(new RegisterNpcEvent(npc.getPlayerId(), npc.getUsername()));
     }
 
     public void kickPlayer(String playerId, String npcName) throws NotFoundException, GameException {

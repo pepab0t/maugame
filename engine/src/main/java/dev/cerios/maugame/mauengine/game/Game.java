@@ -76,7 +76,7 @@ public class Game {
     public GamePlayer registerPlayer(String username, final GameEventListener eventListener, boolean priorityPlayer)
         throws GameException {
 
-        
+
         var l = lock.writeLock();
         try {
             l.lock();
@@ -90,7 +90,7 @@ public class Game {
         }
     }
 
-    public void addNpc(String playerId) throws GameException {
+    public GamePlayer addNpc(String playerId) throws GameException {
         var l = lock.writeLock();
         try {
             l.lock();
@@ -98,7 +98,7 @@ public class Game {
             if (!lobby.isLeader(playerId)) {
                 throw new GameException("Player is not leader of lobby.");
             }
-            lobby.registerNpcPlayer();
+            return lobby.registerNpcPlayer();
         } finally {
             l.unlock();
         }
